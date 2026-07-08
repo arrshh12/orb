@@ -1,5 +1,5 @@
 /**
- * Auto-configuration engine for Loom.
+ * Auto-configuration engine for Orb.
  * Computes VRAM estimates, selects training parameters, and estimates time.
  * This is the "safety layer" that prevents OOM errors and sets sane defaults.
  */

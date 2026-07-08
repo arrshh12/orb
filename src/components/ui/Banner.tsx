@@ -2,14 +2,10 @@ import React from 'react';
 import { Box, Text } from 'ink';
 import Gradient from 'ink-gradient';
 import BigText from 'ink-big-text';
+import { Fish } from './Fish.js';
 
 /**
- * A gradient ASCII art banner showing "LOOM" with a tagline.
- *
- * ╔══════════════════════════════════════╗
- *   L O O M
- *   Fine-tune any LLM on your laptop
- * ╚══════════════════════════════════════╝
+ * A gradient ASCII art banner showing "ORB" with a tagline and animated fish.
  */
 export function Banner(): React.ReactElement {
   return (
@@ -23,12 +19,13 @@ export function Banner(): React.ReactElement {
         alignItems="center"
       >
         <Gradient name="pastel">
-          <BigText text="LOOM" font="chrome" />
+          <BigText text="ORB" font="chrome" />
         </Gradient>
         <Text color="gray" italic>
           Fine-tune any LLM on your laptop
         </Text>
       </Box>
+      <Fish />
     </Box>
   );
 }

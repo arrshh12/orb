@@ -109,7 +109,7 @@ export function DoneStep({
       {/* Footer */}
       <Box marginX={2} marginTop={1}>
         <Text color="gray" dimColor>
-          {'Thank you for using Loom! '}
+          {'Thank you for using Orb! '}
           <Text color="gray">{'🧶'}</Text>
         </Text>
       </Box>

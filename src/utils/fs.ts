@@ -1,6 +1,6 @@
 /**
- * Filesystem utilities for Loom.
- * Handles disk space checks, temp dirs, path resolution, and Loom's data directory.
+ * Filesystem utilities for Orb.
+ * Handles disk space checks, temp dirs, path resolution, and Orb's data directory.
  */
 
 import { statfs, mkdir, stat, readdir, rm } from 'node:fs/promises';
@@ -8,46 +8,46 @@ import { homedir, tmpdir, platform } from 'node:os';
 import { join, resolve, isAbsolute } from 'node:path';
 import { existsSync } from 'node:fs';
 
-/** Get the Loom data directory (~/.loom on Unix, %USERPROFILE%\.loom on Windows) */
-export function getLoomDir(): string {
-  return join(homedir(), '.loom');
+/** Get the Orb data directory (~/.orb on Unix, %USERPROFILE%\.orb on Windows) */
+export function getOrbDir(): string {
+  return join(homedir(), '.orb');
 }
 
-/** Get the Loom venv directory */
+/** Get the Orb venv directory */
 export function getVenvDir(): string {
   const airllmVenv = join(homedir(), '.airllm-tui/.venv');
   if (existsSync(join(airllmVenv, 'Scripts/python.exe')) || existsSync(join(airllmVenv, 'bin/python')) || existsSync(join(airllmVenv, 'Scripts/python')) || existsSync(join(airllmVenv, 'bin/python.exe'))) {
     return airllmVenv;
   }
-  return join(getLoomDir(), 'venv');
+  return join(getOrbDir(), 'venv');
 }
 
-/** Get the Loom output directory for trained models */
+/** Get the Orb output directory for trained models */
 export function getOutputDir(): string {
-  return join(getLoomDir(), 'output');
+  return join(getOrbDir(), 'output');
 }
 
-/** Get the Loom runs directory for tracking training runs */
+/** Get the Orb runs directory for tracking training runs */
 export function getRunsDir(): string {
-  return join(getLoomDir(), 'runs');
+  return join(getOrbDir(), 'runs');
 }
 
-/** Get the Loom cache directory for downloaded models */
+/** Get the Orb cache directory for downloaded models */
 export function getCacheDir(): string {
-  return join(getLoomDir(), 'cache');
+  return join(getOrbDir(), 'cache');
 }
 
 /** Get the llama.cpp tools directory */
 export function getLlamaCppDir(): string {
-  return join(getLoomDir(), 'llama-cpp');
+  return join(getOrbDir(), 'llama-cpp');
 }
 
-/** Get a temporary directory for Loom operations */
+/** Get a temporary directory for Orb operations */
 export function getTempDir(): string {
-  return join(tmpdir(), 'loom-tmp');
+  return join(tmpdir(), 'orb-tmp');
 }
 
-/** Get the Python executable path inside the Loom venv */
+/** Get the Python executable path inside the Orb venv */
 export function getVenvPython(): string {
   const venv = getVenvDir();
   if (platform() === 'win32') {
@@ -56,7 +56,7 @@ export function getVenvPython(): string {
   return join(venv, 'bin', 'python');
 }
 
-/** Get the pip executable path inside the Loom venv */
+/** Get the pip executable path inside the Orb venv */
 export function getVenvPip(): string {
   const venv = getVenvDir();
   if (platform() === 'win32') {
@@ -166,7 +166,7 @@ export async function cleanupTemp(): Promise<void> {
 
 /** Check the version stamp for dependency installation */
 export async function getDepsVersion(): Promise<string | null> {
-  const stampPath = join(getLoomDir(), '.deps-version');
+  const stampPath = join(getOrbDir(), '.deps-version');
   try {
     const { readFile } = await import('node:fs/promises');
     const content = await readFile(stampPath, 'utf-8');
@@ -178,8 +178,8 @@ export async function getDepsVersion(): Promise<string | null> {
 
 /** Write the version stamp after successful dependency installation */
 export async function writeDepsVersion(version: string): Promise<void> {
-  const stampPath = join(getLoomDir(), '.deps-version');
-  await ensureDir(getLoomDir());
+  const stampPath = join(getOrbDir(), '.deps-version');
+  await ensureDir(getOrbDir());
   const { writeFile } = await import('node:fs/promises');
   await writeFile(stampPath, version, 'utf-8');
 }

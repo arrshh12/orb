@@ -1,5 +1,5 @@
 /**
- * Plain-language error handling for Loom.
+ * Plain-language error handling for Orb.
  * Translates technical errors into user-friendly messages with guidance.
  */
 
@@ -50,7 +50,7 @@ const ERROR_PATTERNS: Array<{
   {
     pattern: /EACCES|permission denied/i,
     userMessage: 'Permission denied.',
-    guidance: 'Loom doesn\'t have permission to access this file or directory. Try running from a different location.',
+    guidance: 'Orb doesn\'t have permission to access this file or directory. Try running from a different location.',
   },
   {
     pattern: /ENOSPC|no space left|disk full/i,
@@ -125,7 +125,7 @@ export function toPlainLanguageError(error: unknown): PlainLanguageError {
   // Fallback: generic error
   return new PlainLanguageError({
     userMessage: 'Something unexpected went wrong.',
-    guidance: 'Try running Loom again. If this keeps happening, run with --debug for more details.',
+    guidance: 'Try running Orb again. If this keeps happening, run with --debug for more details.',
     technicalDetail: message,
     cause: error instanceof Error ? error : undefined,
   });

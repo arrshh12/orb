@@ -1,5 +1,5 @@
 /**
- * IPC (Inter-Process Communication) manager for Loom.
+ * IPC (Inter-Process Communication) manager for Orb.
  * Spawns the Python training engine as a subprocess and communicates
  * via JSON Lines over stdio.
  */
@@ -16,7 +16,7 @@ import {
   type IPCMessage,
 } from '../types/ipc.js';
 import type { EngineConfig } from '../types/config.js';
-import { ensureDir, getVenvPython, getLoomDir } from '../utils/fs.js';
+import { ensureDir, getVenvPython, getOrbDir } from '../utils/fs.js';
 import { PlainLanguageError } from '../utils/errors.js';
 
 // ─── Engine Path Resolution ──────────────────────────────────────────────────
@@ -53,14 +53,14 @@ export async function spawnTrainingEngine(
   config: EngineConfig,
   callbacks: IPCCallbacks,
   options?: {
-    /** Use system Python instead of Loom's venv */
+    /** Use system Python instead of Orb's venv */
     useSystemPython?: boolean;
     /** Enable debug mode (don't suppress stderr) */
     debug?: boolean;
   },
 ): Promise<TrainingProcess> {
   // Write config to a temp JSON file
-  const configDir = join(getLoomDir(), 'tmp');
+  const configDir = join(getOrbDir(), 'tmp');
   await ensureDir(configDir);
   const configPath = join(configDir, `config_${Date.now()}.json`);
   await writeFile(configPath, JSON.stringify(config, null, 2), 'utf-8');
@@ -74,7 +74,7 @@ export async function spawnTrainingEngine(
   const enginePath = getEnginePath();
 
   // Set up log file for stderr
-  const logDir = join(getLoomDir(), 'logs');
+  const logDir = join(getOrbDir(), 'logs');
   await ensureDir(logDir);
   const logPath = join(logDir, `training_${Date.now()}.log`);
 
@@ -99,8 +99,8 @@ export async function spawnTrainingEngine(
     throw new PlainLanguageError({
       userMessage: 'Failed to start the training engine.',
       guidance:
-        'Make sure Python is installed and Loom\'s dependencies are set up.\n' +
-        'Try running "loom" again — it will attempt to set up dependencies automatically.',
+        'Make sure Python is installed and Orb\'s dependencies are set up.\n' +
+        'Try running "orb" again — it will attempt to set up dependencies automatically.',
       technicalDetail: error instanceof Error ? error.message : String(error),
     });
   }

@@ -1,5 +1,5 @@
 /**
- * Root wizard component for Loom.
+ * Root wizard component for Orb.
  * Manages the multi-step wizard flow using a state machine.
  * Each step renders its own component and passes data forward.
  */
@@ -299,8 +299,8 @@ export function App({ debug = false }: AppProps) {
               type: 'SET_ERROR',
               message: 'The training engine exited unexpectedly.',
               guidance: state.lastCheckpoint
-                ? `Your progress was saved at the last checkpoint. Run Loom again to resume.`
-                : 'Try running Loom again. If this keeps happening, try a smaller model or batch size.',
+                ? `Your progress was saved at the last checkpoint. Run Orb again to resume.`
+                : 'Try running Orb again. If this keeps happening, try a smaller model or batch size.',
             });
           }
         },
@@ -390,7 +390,7 @@ export function App({ debug = false }: AppProps) {
     case 'dependencies':
       return (
         <Box flexDirection="column" padding={1}>
-          <Text bold color="cyan">Setting up Loom for the first time</Text>
+          <Text bold color="cyan">Setting up Orb for the first time</Text>
           <Text dimColor>This only happens once and may take a few minutes.</Text>
           <Box marginTop={1}>
             <Spinner message={depStatus || 'Installing dependencies...'} />
@@ -440,7 +440,7 @@ export function App({ debug = false }: AppProps) {
           {state.lastCheckpoint && (
             <Box marginTop={1}>
               <Text color="yellow">
-                💾 Your training progress was saved. Run Loom again to resume.
+                💾 Your training progress was saved. Run Orb again to resume.
               </Text>
             </Box>
           )}

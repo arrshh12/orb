@@ -1,5 +1,5 @@
 /**
- * Dependency management module for Loom.
+ * Dependency management module for Orb.
  * Handles Python detection, venv creation, pip installs, and llama.cpp tools.
  * All installs are silent with progress indicators — no raw pip output.
  */
@@ -14,7 +14,7 @@ import type { BackendType } from '../types/hardware.js';
 import {
   getVenvDir,
   getVenvPython,
-  getLoomDir,
+  getOrbDir,
   ensureDir,
   getDepsVersion,
   writeDepsVersion,
@@ -86,7 +86,7 @@ export async function findSystemPython(): Promise<{ path: string; version: strin
 // ─── Venv Management ─────────────────────────────────────────────────────────
 
 /**
- * Check if the Loom venv exists and has the right Python version.
+ * Check if the Orb venv exists and has the right Python version.
  */
 async function venvExists(): Promise<boolean> {
   const pythonPath = getVenvPython();
@@ -94,11 +94,11 @@ async function venvExists(): Promise<boolean> {
 }
 
 /**
- * Create the Loom venv using the system Python.
+ * Create the Orb venv using the system Python.
  */
 async function createVenv(systemPythonPath: string, callbacks: DependencyCallbacks): Promise<void> {
   const venvDir = getVenvDir();
-  await ensureDir(getLoomDir());
+  await ensureDir(getOrbDir());
 
   callbacks.onStatus('Creating isolated Python environment...');
 
@@ -120,7 +120,7 @@ async function createVenv(systemPythonPath: string, callbacks: DependencyCallbac
   if (!existsSync(getVenvPython())) {
     throw new PlainLanguageError({
       userMessage: 'Python environment was created but the Python executable is missing.',
-      guidance: 'Try deleting ~/.loom/venv/ and running Loom again.',
+      guidance: 'Try deleting ~/.orb/venv/ and running Orb again.',
     });
   }
 }
@@ -176,7 +176,7 @@ async function pipInstall(
     throw new PlainLanguageError({
       userMessage: 'Failed to install Python dependencies.',
       guidance:
-        'Try deleting the ~/.loom/venv/ directory and running Loom again.\n' +
+        'Try deleting the ~/.orb/venv/ directory and running Orb again.\n' +
         'If this keeps happening, run with --debug for more details.',
       technicalDetail: msg,
     });
@@ -272,7 +272,7 @@ export async function areDependenciesReady(): Promise<boolean> {
 }
 
 /**
- * Set up all Loom dependencies. This is the main entry point.
+ * Set up all Orb dependencies. This is the main entry point.
  * Should only need to run once (or when DEPS_VERSION is bumped).
  */
 export async function setupDependencies(
@@ -285,10 +285,10 @@ export async function setupDependencies(
   }
 
   // Check disk space
-  const diskFree = await getDiskFreeMB(getLoomDir());
+  const diskFree = await getDiskFreeMB(getOrbDir());
   if (diskFree >= 0 && diskFree < MIN_DISK_SPACE_MB) {
     throw new PlainLanguageError({
-      userMessage: `Not enough disk space to set up Loom (need ~5 GB, have ${Math.round(diskFree / 1024 * 10) / 10} GB).`,
+      userMessage: `Not enough disk space to set up Orb (need ~5 GB, have ${Math.round(diskFree / 1024 * 10) / 10} GB).`,
       guidance: 'Free up some disk space and try again.',
     });
   }
@@ -353,7 +353,7 @@ export async function setupDependencies(
 }
 
 /**
- * Get info about the Loom venv Python for diagnostics.
+ * Get info about the Orb venv Python for diagnostics.
  */
 export async function getVenvInfo(): Promise<{
   pythonPath: string;

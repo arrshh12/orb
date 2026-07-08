@@ -1,5 +1,5 @@
 /**
- * Model information types for Loom.
+ * Model information types for Orb.
  * Describes HuggingFace model metadata for validation and auto-config.
  */
 

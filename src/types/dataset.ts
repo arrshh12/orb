@@ -1,5 +1,5 @@
 /**
- * Dataset types for Loom.
+ * Dataset types for Orb.
  * Handles format detection, validation, and normalization across all supported formats.
  */
 

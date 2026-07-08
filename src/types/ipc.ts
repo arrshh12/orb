@@ -1,5 +1,5 @@
 /**
- * IPC (Inter-Process Communication) message types for Loom.
+ * IPC (Inter-Process Communication) message types for Orb.
  * Defines the JSON Lines protocol between the Node.js CLI and the Python training engine.
  */
 

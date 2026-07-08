@@ -1,5 +1,5 @@
 /**
- * Hardware detection module for Loom.
+ * Hardware detection module for Orb.
  * Detects GPU, RAM, disk space, and selects the appropriate training backend.
  * 
  * This runs before any model is touched — it determines what the user's machine
@@ -238,7 +238,7 @@ export function summarizeHardware(hw: HardwareInfo): HardwareSummary {
   let refusalReason: string | undefined;
   if (!viable) {
     refusalReason =
-      'Loom requires a dedicated GPU (NVIDIA with CUDA or Apple Silicon M-series) ' +
+      'Orb requires a dedicated GPU (NVIDIA with CUDA or Apple Silicon M-series) ' +
       'to fine-tune models. Training on CPU alone would take an unreasonable amount ' +
       'of time (30+ hours for even a small model) and is not supported.\n\n' +
       'Options:\n' +

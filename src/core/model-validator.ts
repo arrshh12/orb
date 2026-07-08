@@ -1,5 +1,5 @@
 /**
- * Model ID validation module for Loom.
+ * Model ID validation module for Orb.
  * Validates any HuggingFace model ID, checks architecture support,
  * estimates parameter count, and handles gated models.
  */
@@ -198,11 +198,11 @@ export async function validateModel(
       return {
         valid: false,
         error:
-          `Model "${normalizedId}" uses architecture "${architecture}", which Loom doesn't support yet.\n\n` +
-          'Loom supports these architectures:\n' +
+          `Model "${normalizedId}" uses architecture "${architecture}", which Orb doesn't support yet.\n\n` +
+          'Orb supports these architectures:\n' +
           SUPPORTED_ARCHITECTURES.map((a) => `  • ${a}`).join('\n') + '\n\n' +
           'This is usually because the model is not a text-generation (causal LM) model,\n' +
-          'or it uses a very new architecture that hasn\'t been added to Loom yet.',
+          'or it uses a very new architecture that hasn\'t been added to Orb yet.',
       };
     }
 
@@ -303,6 +303,6 @@ export function quickFitCheck(model: ModelInfo, availableVRAMMB: number): {
     fits: false,
     message:
       `This model needs ~${minNeededGB.toFixed(1)} GB but you only have ${availableGB.toFixed(1)} GB available.\n` +
-      'Consider a smaller model, or Loom will try to optimize batch size and sequence length.',
+      'Consider a smaller model, or Orb will try to optimize batch size and sequence length.',
   };
 }

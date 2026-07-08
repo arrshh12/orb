@@ -1,5 +1,5 @@
 /**
- * Hardware detection types for Loom.
+ * Hardware detection types for Orb.
  * Describes the user's machine capabilities to drive backend selection and auto-config.
  */
 

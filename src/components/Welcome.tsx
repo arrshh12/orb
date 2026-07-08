@@ -45,7 +45,7 @@ export function Welcome({ hardware, onContinue }: WelcomeProps): React.ReactElem
             title="No GPU Detected"
             message="QLoRA fine-tuning requires a GPU with at least 4 GB of VRAM."
             guidance={
-              'Loom needs an NVIDIA GPU (CUDA) or Apple Silicon (MLX) to train.\n' +
+              'Orb needs an NVIDIA GPU (CUDA) or Apple Silicon (MLX) to train.\n' +
               'CPU-only training is not currently supported.\n\n' +
               'Press Enter to exit.'
             }

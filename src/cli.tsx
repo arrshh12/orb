@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * Loom CLI entry point.
+ * Orb CLI entry point.
  * Parses arguments, checks dependencies, and launches the Ink wizard.
  */
 
@@ -12,9 +12,9 @@ import { App } from './app.js';
 
 const cli = meow(`
   Usage
-    $ loom                    Start the fine-tuning wizard
-    $ loom --resume <id>      Resume an interrupted training run
-    $ loom --version          Show version
+    $ orb                    Start the fine-tuning wizard
+    $ orb --resume <id>      Resume an interrupted training run
+    $ orb --version          Show version
 
   Options
     --resume, -r     Resume from a previous training run
@@ -23,9 +23,9 @@ const cli = meow(`
     --help, -h       Show this help text
 
   Examples
-    $ loom
-    $ loom --debug
-    $ loom --resume loom_run_2024-01-15
+    $ orb
+    $ orb --debug
+    $ orb --resume orb_run_2024-01-15
 `, {
   importMeta: import.meta,
   flags: {

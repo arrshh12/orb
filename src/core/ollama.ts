@@ -1,5 +1,5 @@
 /**
- * Ollama integration module for Loom.
+ * Ollama integration module for Orb.
  * Generates Modelfiles and imports models into Ollama.
  */
 

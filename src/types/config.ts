@@ -1,5 +1,5 @@
 /**
- * Training configuration types for Loom.
+ * Training configuration types for Orb.
  * Auto-config output and user-adjustable settings.
  */
 

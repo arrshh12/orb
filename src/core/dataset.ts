@@ -1,5 +1,5 @@
 /**
- * Dataset ingestion module for Loom.
+ * Dataset ingestion module for Orb.
  * Detects format, infers schema, validates, normalizes, and exports datasets.
  * Supports: CSV, TSV, JSON, JSONL, TXT, MD
  */
