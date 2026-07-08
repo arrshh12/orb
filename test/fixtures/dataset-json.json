@@ -1,0 +1,7 @@
+[
+  {"instruction": "Explain photosynthesis", "input": "", "output": "Photosynthesis is the process by which green plants convert sunlight into glucose and oxygen."},
+  {"instruction": "What is the capital of France?", "input": "", "output": "The capital of France is Paris."},
+  {"instruction": "Summarize the water cycle", "input": "", "output": "The water cycle involves evaporation, condensation, precipitation, and collection."},
+  {"instruction": "Define machine learning", "input": "", "output": "Machine learning is a subset of AI where computers learn patterns from data."},
+  {"instruction": "What causes seasons?", "input": "Consider Earth's orbit.", "output": "Seasons are caused by the tilt of Earth's axis relative to its orbital plane."}
+]

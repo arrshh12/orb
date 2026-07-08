@@ -1,0 +1,43 @@
+{
+  "name": "loom-cli",
+  "version": "0.1.0",
+  "description": "Fine-tune any Hugging Face model on your own laptop using QLoRA, then export to Ollama-ready GGUF.",
+  "type": "module",
+  "bin": {
+    "loom": "./dist/cli.js"
+  },
+  "scripts": {
+    "dev": "tsx src/cli.tsx",
+    "build": "tsc",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
+    "lint": "tsc --noEmit"
+  },
+  "keywords": ["qlora", "fine-tuning", "llm", "ollama", "gguf", "lora"],
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "ink": "^7.1.0",
+    "react": "^19.0.0",
+    "@inkjs/ui": "^2.0.0",
+    "ink-gradient": "^3.0.0",
+    "ink-big-text": "^2.0.0",
+    "chalk": "^5.3.0",
+    "execa": "^9.3.0",
+    "zod": "^3.23.0",
+    "nanoid": "^5.0.0",
+    "meow": "^13.0.0",
+    "csv-parse": "^5.5.0",
+    "chardet": "^2.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.0",
+    "tsx": "^4.16.0",
+    "@types/react": "^19.0.0",
+    "vitest": "^2.0.0",
+    "@types/node": "^22.0.0"
+  }
+}

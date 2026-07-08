@@ -1,0 +1,5 @@
+{"instruction": "Valid first line", "output": "This is valid"}
+not valid json at all
+{"instruction": "Valid third line", "output": "This is also valid"}
+{broken json here
+{"instruction": "Valid fifth line", "output": "Another valid one"}

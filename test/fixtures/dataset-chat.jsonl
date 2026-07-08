@@ -1,0 +1,4 @@
+{"messages": [{"role": "system", "content": "You are a helpful science tutor."}, {"role": "user", "content": "Explain photosynthesis"}, {"role": "assistant", "content": "Photosynthesis is the process by which green plants convert sunlight into glucose and oxygen."}]}
+{"messages": [{"role": "user", "content": "What is the capital of France?"}, {"role": "assistant", "content": "The capital of France is Paris."}]}
+{"messages": [{"role": "system", "content": "You are a geography expert."}, {"role": "user", "content": "Name the longest river"}, {"role": "assistant", "content": "The Nile River is traditionally considered the longest river in the world at approximately 6,650 km."}]}
+{"messages": [{"role": "user", "content": "Define machine learning"}, {"role": "assistant", "content": "Machine learning is a subset of AI where computers learn patterns from data without being explicitly programmed."}]}
