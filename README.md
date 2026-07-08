@@ -8,12 +8,12 @@ Orb is distributed via npm. You can run it directly without installing, or insta
 
 ### Option 1: Run instantly via npx (Recommended)
 ```bash
-npx orb-cli
+npx orb-finetune
 ```
 
 ### Option 2: Install globally
 ```bash
-npm install -g orb-cli
+npm install -g orb-finetune
 orb
 ```
 *Note: Orb requires Node.js 18 or higher. The Python dependencies and environment are handled automatically during the first run.*

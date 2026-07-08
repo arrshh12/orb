@@ -1,5 +1,5 @@
 {
-  "name": "orb-cli",
+  "name": "orb-finetune",
   "version": "0.1.0",
   "description": "Fine-tune any Hugging Face model on your own laptop using QLoRA, then export to Ollama-ready GGUF.",
   "type": "module",
