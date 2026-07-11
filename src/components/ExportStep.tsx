@@ -1,6 +1,7 @@
 import React from 'react';
 import { Box, Text } from 'ink';
-import { Spinner as InkSpinner } from '@inkjs/ui';
+import { Spinner } from './ui/Spinner.js';
+import { INK, glyph } from '../utils/colors.js';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -21,24 +22,24 @@ interface ExportStepProps {
 function StageIcon({ status }: { status: ExportStage['status'] }): React.ReactElement {
   switch (status) {
     case 'complete':
-      return <Text color="green" bold>{'✓ '}</Text>;
+      return <Text color={INK.primary} bold>{`${glyph.success} `}</Text>;
     case 'active':
-      return <InkSpinner label="" />;
+      return <Spinner message="" />;
     case 'error':
-      return <Text color="red" bold>{'✖ '}</Text>;
+      return <Text color={INK.error} bold>{`${glyph.error} `}</Text>;
     case 'pending':
     default:
-      return <Text color="gray">{'○ '}</Text>;
+      return <Text color={INK.dim}>{`${glyph.pending} `}</Text>;
   }
 }
 
 function stageColor(status: ExportStage['status']): string {
   switch (status) {
-    case 'complete': return 'green';
-    case 'active':   return 'cyan';
-    case 'error':    return 'red';
+    case 'complete': return INK.primary;
+    case 'active':   return INK.gold;
+    case 'error':    return INK.error;
     case 'pending':
-    default:         return 'gray';
+    default:         return INK.dim;
   }
 }
 
@@ -47,7 +48,7 @@ function stageColor(status: ExportStage['status']): string {
 /**
  * GGUF export progress display with stage checklist.
  *
- *   Exporting your model...
+ *   EXPORT                        [ACTIVE]
  *
  *   ✓ Merging adapter into base model
  *   ✓ Converting to GGUF format
@@ -62,12 +63,13 @@ export function ExportStep({ stages, currentStage: _currentStage }: ExportStepPr
     <Box flexDirection="column">
       {/* Header */}
       <Box marginX={1} marginBottom={1}>
-        <Text bold color="cyan">{'📦 '}</Text>
-        <Text bold>
-          {hasError ? 'Export encountered an error' :
-           allDone  ? 'Export complete!' :
-                      'Exporting your model...'}
-        </Text>
+        <Text color={INK.text} bold>{'EXPORT'}</Text>
+        {hasError && (
+          <Text color={INK.error} bold>{'  [ERROR]'}</Text>
+        )}
+        {allDone && (
+          <Text color={INK.primary} bold>{'  [COMPLETE]'}</Text>
+        )}
       </Box>
 
       {/* Stage list */}
@@ -79,7 +81,7 @@ export function ExportStep({ stages, currentStage: _currentStage }: ExportStepPr
               {stage.status === 'active' ? `${stage.label}` : stage.label}
             </Text>
             {stage.status === 'active' && (
-              <Text color="gray" dimColor>{'...'}</Text>
+              <Text color={INK.dim}>{'...'}</Text>
             )}
           </Box>
         ))}
@@ -92,7 +94,7 @@ export function ExportStep({ stages, currentStage: _currentStage }: ExportStepPr
             .filter(s => s.status === 'error' && s.errorMessage)
             .map(s => (
               <Box key={s.id} flexDirection="column">
-                <Text color="red">{'  Error: '}{s.errorMessage}</Text>
+                <Text color={INK.error}>{'  Error: '}{s.errorMessage}</Text>
               </Box>
             ))}
         </Box>
@@ -101,8 +103,8 @@ export function ExportStep({ stages, currentStage: _currentStage }: ExportStepPr
       {/* Completion message */}
       {allDone && (
         <Box marginX={2} marginTop={1}>
-          <Text color="green" bold>{'✓ '}</Text>
-          <Text>All export stages completed successfully.</Text>
+          <Text color={INK.primary} bold>{`${glyph.success} `}</Text>
+          <Text color={INK.primary}>[COMPLETE] All export stages finished.</Text>
         </Box>
       )}
     </Box>

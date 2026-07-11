@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Box, Text, Newline } from 'ink';
 import { ProgressBar } from './ui/ProgressBar.js';
+import { Spinner } from './ui/Spinner.js';
+import { INK, glyph } from '../utils/colors.js';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -37,9 +39,9 @@ function formatEtaMinutes(seconds: number): number {
 }
 
 function getLossTrend(current: number, initial: number): { arrow: string; color: string } {
-  if (current < initial * 0.95) return { arrow: '↓', color: 'green' };
-  if (current > initial * 1.05) return { arrow: '↑', color: 'red' };
-  return { arrow: '→', color: 'yellow' };
+  if (current < initial * 0.95) return { arrow: '↓', color: INK.primary };
+  if (current > initial * 1.05) return { arrow: '↑', color: INK.error };
+  return { arrow: '→', color: INK.gold };
 }
 
 // ─── Main Component ──────────────────────────────────────────────────────────
@@ -68,7 +70,7 @@ export function TrainingStep({
 
   const lossTrend = initialLoss != null && progress != null
     ? getLossTrend(progress.loss, initialLoss)
-    : { arrow: '', color: 'gray' };
+    : { arrow: '', color: INK.dim };
 
   const isRunning = progress != null && progress.step > 0;
 
@@ -76,8 +78,8 @@ export function TrainingStep({
     <Box flexDirection="column">
       {/* Header */}
       <Box marginX={1} marginBottom={0}>
-        <Text bold color="cyan">{'🏋️ Training: '}</Text>
-        <Text bold>{modelId}</Text>
+        <Text bold color={INK.text}>TRAINING </Text>
+        <Text bold color={INK.primary}>{modelId}</Text>
       </Box>
 
       {/* Progress bar */}
@@ -92,35 +94,35 @@ export function TrainingStep({
       {/* Stats */}
       <Box flexDirection="column" marginX={2} marginTop={1}>
         {!isRunning ? (
-          <Box>
-            <Text color="yellow">{stage || 'Initializing...'}</Text>
+          <Box marginTop={1}>
+            <Spinner message={stage || 'Initializing...'} />
           </Box>
         ) : (
           <>
             <Text>
-              <Text color="gray">{'Loss:     '}</Text>
+              <Text color={INK.dim}>{'Loss:     '}</Text>
               <Text color="white" bold>{progress!.loss.toFixed(4)}</Text>
               {' '}
               <Text color={lossTrend.color}>{lossTrend.arrow}</Text>
               {initialLoss != null && (
-                <Text color="gray">{`  (started: ${initialLoss.toFixed(2)})`}</Text>
+                <Text color={INK.dim}>{`  (started: ${initialLoss.toFixed(2)})`}</Text>
               )}
             </Text>
 
             <Text>
-              <Text color="gray">{'Speed:    '}</Text>
+              <Text color={INK.dim}>{'Speed:    '}</Text>
               <Text color="white" bold>{Math.round(progress!.tokensPerSec)}</Text>
-              <Text color="gray">{' tokens/sec'}</Text>
+              <Text color={INK.dim}>{' tokens/sec'}</Text>
             </Text>
 
             <Text>
-              <Text color="gray">{'Elapsed:  '}</Text>
+              <Text color={INK.dim}>{'Elapsed:  '}</Text>
               <Text color="white">{formatDuration(elapsedSec)}</Text>
             </Text>
 
             <Text>
-              <Text color="gray">{'ETA:      '}</Text>
-              <Text color="yellow">
+              <Text color={INK.dim}>{'ETA:      '}</Text>
+              <Text color={INK.gold}>
                 {progress!.etaSeconds > 0
                   ? `~${formatDuration(progress!.etaSeconds)} remaining`
                   : 'calculating...'}
@@ -129,25 +131,25 @@ export function TrainingStep({
 
             {progress!.lr != null && (
               <Text>
-                <Text color="gray">{'LR:       '}</Text>
+                <Text color={INK.dim}>{'LR:       '}</Text>
                 <Text color="white">{progress!.lr!.toExponential(2)}</Text>
               </Text>
             )}
 
             {stage && stage !== 'Initializing...' && (
               <Text>
-                <Text color="gray">{'Stage:    '}</Text>
-                <Text color="cyan">{stage}</Text>
+                <Text color={INK.dim}>{'Stage:    '}</Text>
+                <Text color={INK.primary}>{stage}</Text>
               </Text>
             )}
 
             <Newline />
             <Text>
-              <Text color="gray">{'Last checkpoint: '}</Text>
+              <Text color={INK.dim}>{'Last checkpoint: '}</Text>
               {lastCheckpoint != null ? (
-                <Text color="green" bold>{lastCheckpoint}{' ✓'}</Text>
+                <Text color={INK.primary} bold>{lastCheckpoint}{` ${glyph.success}`}</Text>
               ) : (
-                <Text color="gray" dimColor>{'none yet'}</Text>
+                <Text color={INK.dim}>{'none yet'}</Text>
               )}
             </Text>
           </>

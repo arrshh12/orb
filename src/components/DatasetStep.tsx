@@ -5,8 +5,9 @@ import type { DatasetMeta, DatasetValidationResult, NormalizedExample, ColumnMap
 import { Spinner } from './ui/Spinner.js';
 import { ErrorBox } from './ui/ErrorBox.js';
 import { ConfirmPrompt } from './ui/ConfirmPrompt.js';
-import { loadAndValidateDataset, exportNormalizedDataset } from '../core/dataset.js';
+import { loadAndValidateDataset, exportNormalizedDataset, findLocalDatasets } from '../core/dataset.js';
 import { PlainLanguageError } from '../utils/errors.js';
+import { INK, glyph } from '../utils/colors.js';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -16,7 +17,8 @@ interface DatasetStepProps {
 }
 
 type Phase =
-  | 'input'          // entering file path
+  | 'select'         // pick from local files
+  | 'input'          // entering file path manually
   | 'validating'     // loading and validating
   | 'mapping'        // ambiguous schema — user picks column mapping
   | 'preview'        // show preview + confirm
@@ -55,39 +57,39 @@ function PreviewExample({ example, index }: {
   const maxLen = 76;
   return (
     <Box flexDirection="column" marginLeft={2} marginBottom={0}>
-      <Text color="gray" dimColor>{'── Example '}{index + 1}{' ──'}</Text>
+      <Text color={INK.secondary}>{`${glyph.separator.repeat(2)} Example ${index + 1} ${glyph.separator.repeat(2)}`}</Text>
       {example.instruction && (
         <Text>
-          <Text color="cyan" bold>{'  instruction: '}</Text>
-          <Text>{truncate(example.instruction, maxLen)}</Text>
+          <Text color={INK.primary} bold>{'  instruction: '}</Text>
+          <Text color={INK.text}>{truncate(example.instruction, maxLen)}</Text>
         </Text>
       )}
       {example.input && (
         <Text>
-          <Text color="cyan" bold>{'  input:       '}</Text>
-          <Text>{truncate(example.input, maxLen)}</Text>
+          <Text color={INK.primary} bold>{'  input:       '}</Text>
+          <Text color={INK.text}>{truncate(example.input, maxLen)}</Text>
         </Text>
       )}
       {example.output && (
         <Text>
-          <Text color="cyan" bold>{'  output:      '}</Text>
-          <Text>{truncate(example.output, maxLen)}</Text>
+          <Text color={INK.primary} bold>{'  output:      '}</Text>
+          <Text color={INK.text}>{truncate(example.output, maxLen)}</Text>
         </Text>
       )}
       {example.text && (
         <Text>
-          <Text color="cyan" bold>{'  text:        '}</Text>
-          <Text>{truncate(example.text, maxLen)}</Text>
+          <Text color={INK.primary} bold>{'  text:        '}</Text>
+          <Text color={INK.text}>{truncate(example.text, maxLen)}</Text>
         </Text>
       )}
       {example.messages && example.messages.length > 0 && (
         <>
           {example.messages.slice(0, 3).map((m, i) => (
             <Text key={i}>
-              <Text color={m.role === 'user' ? 'green' : m.role === 'assistant' ? 'blue' : 'yellow'} bold>
+              <Text color={INK.primary} bold>
                 {'  '}{m.role.padEnd(10)}
               </Text>
-              <Text>{truncate(m.content, maxLen)}</Text>
+              <Text color={INK.text}>{truncate(m.content, maxLen)}</Text>
             </Text>
           ))}
         </>
@@ -103,35 +105,35 @@ function ValidationSummary({ result }: { result: DatasetValidationResult }): Rea
 
   return (
     <Box flexDirection="column" marginX={2} marginBottom={1}>
-      <Text bold color="cyan">  Dataset Summary</Text>
-      <Text color="gray">  {'─'.repeat(40)}</Text>
-      <Text>{'  Format:     '}<Text color="white" bold>{result.format.toUpperCase()}</Text></Text>
-      <Text>{'  Schema:     '}<Text color="white">{formatSchemaShape(result.schema.shape)}</Text></Text>
-      <Text>{'  File size:  '}<Text color="white">{formatBytes(result.fileSizeBytes)}</Text></Text>
-      <Text>{'  Total rows: '}<Text color="white" bold>{totalRows}</Text></Text>
-      <Text>
+      <Text bold color={INK.primary}>  DATASET SUMMARY</Text>
+      <Text color={INK.secondary}>{`  ${glyph.separator.repeat(40)}`}</Text>
+      <Text color={INK.dim}>{'  Format:     '}<Text color="white" bold>{`[${result.format.toUpperCase()}]`}</Text></Text>
+      <Text color={INK.dim}>{'  Schema:     '}<Text color="white">{formatSchemaShape(result.schema.shape)}</Text></Text>
+      <Text color={INK.dim}>{'  File size:  '}<Text color="white">{formatBytes(result.fileSizeBytes)}</Text></Text>
+      <Text color={INK.dim}>{'  Total rows: '}<Text color="white" bold>{totalRows}</Text></Text>
+      <Text color={INK.dim}>
         {'  Valid rows: '}
-        <Text color={validRows === totalRows ? 'green' : 'yellow'} bold>
+        <Text color={validRows === totalRows ? INK.primary : INK.warning} bold>
           {validRows}
         </Text>
         {validRows < totalRows && (
-          <Text color="yellow">{` (${totalRows - validRows} skipped)`}</Text>
+          <Text color={INK.warning}>{` (${totalRows - validRows} skipped)`}</Text>
         )}
       </Text>
       {issueCount > 0 && (
         <Box flexDirection="column" marginTop={0}>
-          <Text color="yellow" bold>{'  Issues found:'}</Text>
-          {issues.emptyRows > 0 && <Text color="yellow">{'    • '}{issues.emptyRows} empty rows</Text>}
-          {issues.duplicateRows > 0 && <Text color="yellow">{'    • '}{issues.duplicateRows} duplicate rows</Text>}
-          {issues.missingFields > 0 && <Text color="yellow">{'    • '}{issues.missingFields} rows with missing fields</Text>}
-          {issues.encodingIssues > 0 && <Text color="yellow">{'    • '}{issues.encodingIssues} encoding issues</Text>}
-          {issues.tokenLengthOutliers > 0 && <Text color="yellow">{'    • '}{issues.tokenLengthOutliers} token length outliers</Text>}
+          <Text color={INK.warning} bold>{'  Issues found:'}</Text>
+          {issues.emptyRows > 0 && <Text color={INK.warning}>{`    ${glyph.bullet} `}{issues.emptyRows} empty rows</Text>}
+          {issues.duplicateRows > 0 && <Text color={INK.warning}>{`    ${glyph.bullet} `}{issues.duplicateRows} duplicate rows</Text>}
+          {issues.missingFields > 0 && <Text color={INK.warning}>{`    ${glyph.bullet} `}{issues.missingFields} rows with missing fields</Text>}
+          {issues.encodingIssues > 0 && <Text color={INK.warning}>{`    ${glyph.bullet} `}{issues.encodingIssues} encoding issues</Text>}
+          {issues.tokenLengthOutliers > 0 && <Text color={INK.warning}>{`    ${glyph.bullet} `}{issues.tokenLengthOutliers} token length outliers</Text>}
         </Box>
       )}
       {issueCount === 0 && (
-        <Text color="green">{'  ✓ No issues found'}</Text>
+        <Text color={INK.primary}>{`  ${glyph.success} [CLEAN] No issues found`}</Text>
       )}
-      <Text color="gray">  {'─'.repeat(40)}</Text>
+      <Text color={INK.secondary}>{`  ${glyph.separator.repeat(40)}`}</Text>
     </Box>
   );
 }
@@ -142,11 +144,19 @@ function ValidationSummary({ result }: { result: DatasetValidationResult }): Rea
  * Dataset selection and preview wizard step.
  */
 export function DatasetStep({ onComplete, onBack }: DatasetStepProps): React.ReactElement {
-  const [phase, setPhase] = useState<Phase>('input');
+  const [phase, setPhase] = useState<Phase>('select');
+  const [localFiles, setLocalFiles] = useState<string[]>([]);
   const [filePath, setFilePath] = useState('');
   const [error, setError] = useState<Error | string | null>(null);
   const [validation, setValidation] = useState<DatasetValidationResult | null>(null);
   const [selectedMapping, setSelectedMapping] = useState<ColumnMapping | undefined>(undefined);
+
+  React.useEffect(() => {
+    findLocalDatasets().then((files) => {
+      setLocalFiles(files);
+      if (files.length === 0) setPhase('input');
+    });
+  }, []);
 
   const handlePathSubmit = useCallback(async (path: string) => {
     // Trim whitespace and remove surrounding quotes (added by terminal drag-and-drop)
@@ -203,25 +213,51 @@ export function DatasetStep({ onComplete, onBack }: DatasetStepProps): React.Rea
     <Box flexDirection="column">
       {/* Header */}
       <Box marginX={1} marginBottom={1}>
-        <Text bold color="cyan">{'📁 Step 1: '}</Text>
-        <Text bold>Select Your Dataset</Text>
+        <Text bold color={INK.text}>SELECT DATASET</Text>
       </Box>
+
+      {/* Phase: File selection */}
+      {phase === 'select' && (
+        <Box flexDirection="column" marginX={2}>
+          <Text color={INK.dim}>
+            Found these datasets in the current directory:
+          </Text>
+          <Box marginTop={0}>
+            <Select
+              options={[
+                ...localFiles.map(f => {
+                  const ext = f.split('.').pop()?.toUpperCase() || 'FILE';
+                  return { label: `[${ext}] ${f}`, value: f };
+                }),
+                { label: `${glyph.prompt} ENTER PATH MANUALLY`, value: '__manual__' }
+              ]}
+              onChange={(value) => {
+                if (value === '__manual__') {
+                  setPhase('input');
+                } else {
+                  handlePathSubmit(value);
+                }
+              }}
+            />
+          </Box>
+        </Box>
+      )}
 
       {/* Phase: File path input */}
       {phase === 'input' && (
         <Box flexDirection="column" marginX={2}>
-          <Text color="gray" dimColor>
+          <Text color={INK.dim}>
             Enter the path to your training data (CSV, JSON, JSONL, or TXT):
           </Text>
           <Box marginTop={0}>
-            <Text color="cyan" bold>{'> '}</Text>
+            <Text color={INK.primary} bold>{`${glyph.prompt} `}</Text>
             <TextInput
               placeholder="./data/my-dataset.jsonl"
               onSubmit={handlePathSubmit}
             />
           </Box>
           <Box marginTop={1}>
-            <Text color="gray" dimColor>
+            <Text color={INK.dim}>
               {'  Tip: Drag and drop a file onto the terminal to paste its path'}
             </Text>
           </Box>
@@ -236,10 +272,10 @@ export function DatasetStep({ onComplete, onBack }: DatasetStepProps): React.Rea
       {/* Phase: Ambiguous schema — column mapping */}
       {phase === 'mapping' && validation?.schema.columns && (
         <Box flexDirection="column" marginX={2}>
-          <Text color="yellow" bold>
-            {'⚠ '} Could not auto-detect the column mapping.
+          <Text color={INK.warning} bold>
+            {`${glyph.warning} `} Could not auto-detect the column mapping.
           </Text>
-          <Text color="gray" dimColor>
+          <Text color={INK.dim}>
             Which column contains the input/prompt text?
           </Text>
           <Box marginTop={0}>
@@ -261,7 +297,7 @@ export function DatasetStep({ onComplete, onBack }: DatasetStepProps): React.Rea
 
           {validation.preview.length > 0 && (
             <Box flexDirection="column" marginX={2} marginBottom={1}>
-              <Text bold color="cyan">  Preview</Text>
+              <Text bold color={INK.primary}>  PREVIEW</Text>
               {validation.preview.slice(0, 3).map((ex, i) => (
                 <PreviewExample key={i} example={ex} index={i} />
               ))}
@@ -289,7 +325,7 @@ export function DatasetStep({ onComplete, onBack }: DatasetStepProps): React.Rea
             guidance={error instanceof PlainLanguageError ? error.guidance : "Check that the file exists and is in a supported format (CSV, JSON, JSONL, TXT)."}
           />
           <Box marginX={2} marginTop={0}>
-            <Text color="gray" dimColor>Press Ctrl+C to exit, or restart to try again.</Text>
+            <Text color={INK.dim}>Press Ctrl+C to exit, or restart to try again.</Text>
           </Box>
         </Box>
       )}

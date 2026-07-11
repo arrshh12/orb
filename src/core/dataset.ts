@@ -4,7 +4,7 @@
  * Supports: CSV, TSV, JSON, JSONL, TXT, MD
  */
 
-import { readFile, writeFile } from 'node:fs/promises';
+import { readFile, writeFile, readdir } from 'node:fs/promises';
 import { extname } from 'node:path';
 import { parse as csvParse } from 'csv-parse/sync';
 
@@ -21,6 +21,27 @@ import type {
 } from '../types/dataset.js';
 import { getFileSize, ensureDir, getTempDir, resolvePath } from '../utils/fs.js';
 import { PlainLanguageError } from '../utils/errors.js';
+
+// ─── Local File Discovery ────────────────────────────────────────────────────
+
+/**
+ * Scan the current working directory for files that might be datasets.
+ */
+export async function findLocalDatasets(): Promise<string[]> {
+  try {
+    const files = await readdir(process.cwd(), { withFileTypes: true });
+    const datasets = files
+      .filter((f) => f.isFile())
+      .map((f) => f.name)
+      .filter((name) => {
+        const ext = extname(name).toLowerCase();
+        return ['.csv', '.tsv', '.json', '.jsonl', '.txt', '.md', '.markdown'].includes(ext);
+      });
+    return datasets;
+  } catch {
+    return [];
+  }
+}
 
 // ─── Format Detection ────────────────────────────────────────────────────────
 

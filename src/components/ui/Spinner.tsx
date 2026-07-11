@@ -1,21 +1,28 @@
 import React from 'react';
-import { Box } from 'ink';
-import { Spinner as InkSpinner } from '@inkjs/ui';
+import { Box, Text } from 'ink';
+import { INK } from '../../utils/colors.js';
+import { useFrameCycle } from '../../utils/useFrameCycle.js';
 
 interface SpinnerProps {
   /** The message displayed next to the spinner */
   message: string;
+  noAnimation?: boolean;
 }
 
+// Braille-dot spinner — feels like a scanning phosphor
+const SPINNER_FRAMES = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
+
 /**
- * Simple spinner with a message. Wraps @inkjs/ui Spinner.
- *
- *   ◐ Loading model metadata...
+ * Bioluminescent spinner.
+ * Cyan glyph cycling through braille frames at 80ms.
  */
-export function Spinner({ message }: SpinnerProps): React.ReactElement {
+export function Spinner({ message, noAnimation = false }: SpinnerProps): React.ReactElement {
+  const frame = useFrameCycle(SPINNER_FRAMES, 80, noAnimation);
+
   return (
     <Box marginX={1}>
-      <InkSpinner label={message} />
+      <Text color={INK.primary}>{frame} </Text>
+      <Text color={INK.text}>{message}</Text>
     </Box>
   );
 }

@@ -1,5 +1,6 @@
 import React from 'react';
 import { Box, Text, Newline, useInput } from 'ink';
+import { INK, glyph } from '../utils/colors.js';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -41,15 +42,14 @@ export function DoneStep({
     <Box flexDirection="column">
       {/* Hero */}
       <Box marginX={1} marginBottom={1}>
-        <Text color="green" bold>{'✨ '}</Text>
-        <Text bold>Your model is ready!</Text>
+        <Text color={INK.primary} bold>{'MODEL READY'}</Text>
       </Box>
 
       {/* File info */}
       <Box
         flexDirection="column"
-        borderStyle="round"
-        borderColor="green"
+        borderStyle="single"
+        borderColor={INK.primary}
         paddingX={2}
         paddingY={0}
         marginX={1}
@@ -57,34 +57,36 @@ export function DoneStep({
       >
         <Newline />
         <Text>
-          <Text color="gray">{'GGUF file:   '}</Text>
+          <Text color={INK.dim}>{'GGUF file:   '}</Text>
           <Text color="white" bold>{ggufPath}</Text>
-          <Text color="gray">{` (${fileSize})`}</Text>
+          <Text color={INK.dim}>{` (${fileSize})`}</Text>
         </Text>
         <Text>
-          <Text color="gray">{'Modelfile:   '}</Text>
-          <Text color="white">{modelfilePath}</Text>
+          <Text color={INK.dim}>{'Modelfile:   '}</Text>
+          <Text color="white" bold>{modelfilePath}</Text>
         </Text>
         <Newline />
 
         {/* Ollama import status */}
         {ollamaImported ? (
           <Text>
-            <Text color="green" bold>{'✓ '}</Text>
-            <Text>{'Imported to Ollama as "'}</Text>
-            <Text color="cyan" bold>{modelName}</Text>
-            <Text>{'"'}</Text>
+            <Text color={INK.primary} bold>{`${glyph.success} `}</Text>
+            <Text color={INK.primary} bold>{'[IMPORTED]'}</Text>
+            <Text color={INK.text}>{' Imported to Ollama as "'}</Text>
+            <Text color={INK.primary} bold>{modelName}</Text>
+            <Text color={INK.text}>{'"'}</Text>
           </Text>
         ) : (
           <Box flexDirection="column">
             <Text>
-              <Text color="yellow" bold>{'⚠ '}</Text>
-              <Text>{'Not imported to Ollama (Ollama not found or import failed)'}</Text>
+              <Text color={INK.warning} bold>{`${glyph.warning} `}</Text>
+              <Text color={INK.warning} bold>{'[SKIPPED]'}</Text>
+              <Text color={INK.text}>{' Not imported to Ollama (Ollama not found or import failed)'}</Text>
             </Text>
-            <Text color="gray" dimColor>
+            <Text color={INK.dim}>
               {'  You can import manually:'}
             </Text>
-            <Text color="cyan">
+            <Text color={INK.primary}>
               {'    ollama create '}{modelName}{' -f '}{modelfilePath}
             </Text>
           </Box>
@@ -94,23 +96,22 @@ export function DoneStep({
 
       {/* Try it now */}
       <Box flexDirection="column" marginX={2}>
-        <Text bold>Try it now:</Text>
+        <Text color={INK.text} bold>Try it now:</Text>
         <Box
-          borderStyle="round"
-          borderColor="cyan"
+          borderStyle="single"
+          borderColor={INK.primary}
           paddingX={2}
           paddingY={0}
           marginTop={0}
         >
-          <Text color="cyan" bold>{'  ollama run '}{modelName}</Text>
+          <Text color={INK.primary} bold>{'  ollama run '}{modelName}</Text>
         </Box>
       </Box>
 
       {/* Footer */}
       <Box marginX={2} marginTop={1}>
-        <Text color="gray" dimColor>
-          {'Thank you for using Orb! '}
-          <Text color="gray">{'🧶'}</Text>
+        <Text color={INK.dim}>
+          {'Press any key to exit.'}
         </Text>
       </Box>
     </Box>

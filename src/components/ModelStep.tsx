@@ -2,18 +2,13 @@ import React, { useState, useCallback } from 'react';
 import { Box, Text, Newline } from 'ink';
 import { TextInput } from '@inkjs/ui';
 import type { HardwareInfo } from '../types/hardware.js';
-import type { ModelInfo, ModelValidationResult } from '../types/model.js';
+import type { ModelInfo } from '../types/model.js';
 import { Spinner } from './ui/Spinner.js';
 import { ErrorBox } from './ui/ErrorBox.js';
 import { ConfirmPrompt } from './ui/ConfirmPrompt.js';
+import { INK, glyph } from '../utils/colors.js';
 
-// ─── Placeholder core functions (TODO: replace with actual implementations) ──
-
-/** TODO: Import from core/model.ts when available */
-async function validateModel(_modelId: string, _hfToken?: string): Promise<ModelValidationResult> {
-  // TODO: Replace with actual HuggingFace model validation logic
-  throw new Error('Not implemented — connect to core/model.ts');
-}
+import { validateModel } from '../core/model-validator.js';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -62,37 +57,37 @@ function ModelInfoCard({ model, hardware }: {
   return (
     <Box
       flexDirection="column"
-      borderStyle="round"
-      borderColor="cyan"
+      borderStyle="single"
+      borderColor={INK.secondary}
       paddingX={2}
       paddingY={0}
       marginX={1}
       marginBottom={1}
     >
-      <Text bold color="cyan">{'🤖 Model Info'}</Text>
+      <Text bold color={INK.primary}>{'MODEL INFO'}</Text>
       <Newline />
-      <Text>{'  Name:           '}<Text color="white" bold>{model.id}</Text></Text>
-      <Text>{'  Architecture:   '}<Text color="white">{model.architecture}</Text></Text>
-      <Text>{'  Parameters:     '}<Text color="white" bold>{formatParams(model.parameterCount)}</Text></Text>
-      <Text>{'  Size (FP16):    '}<Text color="white">{formatGB(model.estimatedSizeFP16GB)}</Text></Text>
-      <Text>{'  Size (4-bit):   '}<Text color="white" bold>{formatGB(model.estimated4BitGB)}</Text></Text>
-      <Text>{'  Context:        '}<Text color="white">{model.maxContextLength.toLocaleString()} tokens</Text></Text>
-      <Text>{'  Layers:         '}<Text color="white">{model.numLayers}</Text></Text>
-      <Text>{'  Hidden size:    '}<Text color="white">{model.hiddenSize}</Text></Text>
+      <Text color={INK.dim}>{'  Name:           '}<Text color="white" bold>{model.id}</Text></Text>
+      <Text color={INK.dim}>{'  Architecture:   '}<Text color="white">{model.architecture}</Text></Text>
+      <Text color={INK.dim}>{'  Parameters:     '}<Text color="white" bold>{formatParams(model.parameterCount)}</Text></Text>
+      <Text color={INK.dim}>{'  Size (FP16):    '}<Text color="white">{formatGB(model.estimatedSizeFP16GB)}</Text></Text>
+      <Text color={INK.dim}>{'  Size (4-bit):   '}<Text color="white" bold>{formatGB(model.estimated4BitGB)}</Text></Text>
+      <Text color={INK.dim}>{'  Context:        '}<Text color="white">{model.maxContextLength.toLocaleString()} tokens</Text></Text>
+      <Text color={INK.dim}>{'  Layers:         '}<Text color="white">{model.numLayers}</Text></Text>
+      <Text color={INK.dim}>{'  Hidden size:    '}<Text color="white">{model.hiddenSize}</Text></Text>
       {model.chatTemplate && (
-        <Text>{'  Chat template:  '}<Text color="green">{'✓ included'}</Text></Text>
+        <Text color={INK.dim}>{'  Chat template:  '}<Text color={INK.primary}>{`[INCLUDED] ${glyph.success} detected`}</Text></Text>
       )}
       {!model.chatTemplate && (
-        <Text>{'  Chat template:  '}<Text color="yellow">{'✗ not found'}</Text></Text>
+        <Text color={INK.dim}>{'  Chat template:  '}<Text color={INK.warning}>{`[MISSING] ${glyph.warning} not found`}</Text></Text>
       )}
       <Newline />
-      <Text color="gray">{'  ─'.repeat(20)}</Text>
+      <Text color={INK.secondary}>{`  ${glyph.separator.repeat(40)}`}</Text>
       <Text>
         {'  Quick fit check: '}
         {willFit ? (
-          <Text color="green" bold>{'✓ Should fit in your '}{formatGB(vramAvailable)}{' VRAM'}</Text>
+          <Text color={INK.primary} bold>{`[FITS] ${glyph.success} Should fit in your `}{formatGB(vramAvailable)}{' VRAM'}</Text>
         ) : (
-          <Text color="yellow" bold>{'⚠ Tight fit — '}{formatGB(model.estimated4BitGB)}{' needed vs '}{formatGB(vramAvailable)}{' available'}</Text>
+          <Text color={INK.error} bold>{`[OOM] ${glyph.error} Tight fit ${glyph.separator} `}{formatGB(model.estimated4BitGB)}{' needed vs '}{formatGB(vramAvailable)}{' available'}</Text>
         )}
       </Text>
     </Box>
@@ -179,26 +174,25 @@ export function ModelStep({ hardware, onComplete, onBack }: ModelStepProps): Rea
     <Box flexDirection="column">
       {/* Header */}
       <Box marginX={1} marginBottom={1}>
-        <Text bold color="cyan">{'🤖 Step 2: '}</Text>
-        <Text bold>Choose a Model</Text>
+        <Text bold color={INK.text}>CHOOSE MODEL</Text>
       </Box>
 
       {/* Phase: Model ID input */}
       {phase === 'input' && (
         <Box flexDirection="column" marginX={2}>
-          <Text color="gray" dimColor>
+          <Text color={INK.dim}>
             Enter a HuggingFace model ID:
           </Text>
           <Box marginTop={0}>
-            <Text color="cyan" bold>{'> '}</Text>
+            <Text color={INK.primary} bold>{`${glyph.prompt} `}</Text>
             <TextInput
               placeholder="e.g., meta-llama/Llama-3.2-1B"
               onSubmit={handleModelSubmit}
             />
           </Box>
           <Box marginTop={1}>
-            <Text color="gray" dimColor>
-              {'  Tip: Use a small model (1B–3B params) for faster training'}
+            <Text color={INK.dim}>
+              {'  Tip: Use a small model (1B-3B params) for faster training'}
             </Text>
           </Box>
         </Box>
@@ -213,17 +207,17 @@ export function ModelStep({ hardware, onComplete, onBack }: ModelStepProps): Rea
       {phase === 'token-input' && (
         <Box flexDirection="column" marginX={2}>
           <Box marginBottom={0}>
-            <Text color="yellow" bold>{'🔒 '}</Text>
-            <Text bold>This model is gated</Text>
+            <Text color={INK.warning} bold>{'[GATED] '}</Text>
+            <Text bold color={INK.text}>This model is gated</Text>
           </Box>
-          <Text color="gray" dimColor>
+          <Text color={INK.dim}>
             You need a HuggingFace access token with permission for this model.
           </Text>
-          <Text color="gray" dimColor>
-            {'Get one at: '}<Text color="cyan" underline>https://huggingface.co/settings/tokens</Text>
+          <Text color={INK.dim}>
+            {'Get one at: '}<Text color={INK.primary} underline>https://huggingface.co/settings/tokens</Text>
           </Text>
           <Box marginTop={0}>
-            <Text color="cyan" bold>{'Token: '}</Text>
+            <Text color={INK.primary} bold>{`${glyph.prompt} Token: `}</Text>
             <TextInput
               placeholder="hf_..."
               onSubmit={handleTokenSubmit}
@@ -239,8 +233,8 @@ export function ModelStep({ hardware, onComplete, onBack }: ModelStepProps): Rea
 
           {!model.isSupported && (
             <Box marginX={2} marginBottom={1}>
-              <Text color="yellow" bold>
-                {'⚠ '}Architecture "{model.architecture}" is not in the verified list.
+              <Text color={INK.warning} bold>
+                {`${glyph.warning} `}Architecture "{model.architecture}" is not in the verified list.
                 Training may still work, but results are not guaranteed.
               </Text>
             </Box>
@@ -265,7 +259,7 @@ export function ModelStep({ hardware, onComplete, onBack }: ModelStepProps): Rea
             }
           />
           <Box marginX={2} marginTop={0}>
-            <Text color="gray" dimColor>Press Ctrl+C to exit, or restart to try again.</Text>
+            <Text color={INK.dim}>Press Ctrl+C to exit, or restart to try again.</Text>
           </Box>
         </Box>
       )}

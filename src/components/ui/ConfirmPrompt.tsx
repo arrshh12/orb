@@ -1,18 +1,16 @@
 import React from 'react';
 import { Box, Text } from 'ink';
 import { ConfirmInput } from '@inkjs/ui';
+import { INK, glyph } from '../../utils/colors.js';
 
 interface ConfirmPromptProps {
-  /** The question to ask */
   question: string;
-  /** Callback when the user confirms or denies */
   onConfirm: (yes: boolean) => void;
 }
 
 /**
- * Yes/no confirmation with a question. Wraps @inkjs/ui ConfirmInput.
- *
- *   ? Continue with training? (Y/n)
+ * Terminal-style confirm prompt.
+ * Uses ">" prefix in primary cyan, not "?".
  */
 export function ConfirmPrompt({
   question,
@@ -20,8 +18,8 @@ export function ConfirmPrompt({
 }: ConfirmPromptProps): React.ReactElement {
   return (
     <Box marginX={1} marginY={0}>
-      <Text bold color="cyan">{'? '}</Text>
-      <Text bold>{question} </Text>
+      <Text bold color={INK.primary}>{`${glyph.prompt} `}</Text>
+      <Text bold color={INK.text}>{question} </Text>
       <ConfirmInput
         onConfirm={() => onConfirm(true)}
         onCancel={() => onConfirm(false)}

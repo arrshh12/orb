@@ -34,7 +34,7 @@ interface HFModelResponse {
  * Fetch model metadata from the HuggingFace API.
  */
 async function fetchModelInfo(modelId: string, hfToken?: string): Promise<HFModelResponse> {
-  const url = `https://huggingface.co/api/models/${encodeURIComponent(modelId)}`;
+  const url = `https://huggingface.co/api/models/${modelId.split('/').map(encodeURIComponent).join('/')}`;
   const headers: Record<string, string> = {
     'Accept': 'application/json',
   };
@@ -89,7 +89,7 @@ async function fetchModelInfo(modelId: string, hfToken?: string): Promise<HFMode
  * Fetch the model's config.json directly (sometimes more detailed than the API).
  */
 async function fetchModelConfig(modelId: string, hfToken?: string): Promise<Record<string, unknown> | null> {
-  const url = `https://huggingface.co/${encodeURIComponent(modelId)}/resolve/main/config.json`;
+  const url = `https://huggingface.co/${modelId.split('/').map(encodeURIComponent).join('/')}/resolve/main/config.json`;
   const headers: Record<string, string> = {};
   if (hfToken) {
     headers['Authorization'] = `Bearer ${hfToken}`;

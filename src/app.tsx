@@ -32,6 +32,9 @@ import { ExportStep, createDefaultExportStages } from './components/ExportStep.j
 import { DoneStep } from './components/DoneStep.js';
 import { ErrorBox } from './components/ui/ErrorBox.js';
 import { Spinner } from './components/ui/Spinner.js';
+import { TabHeader } from './components/ui/TabHeader.js';
+import { Mascot } from './components/ui/Mascot.js';
+import { INK } from './utils/colors.js';
 
 // ─── Wizard State ────────────────────────────────────────────────────────────
 
@@ -174,7 +177,8 @@ export function App({ debug = false }: AppProps) {
         const hw = await detectHardware();
         if (!cancelled) {
           dispatch({ type: 'SET_HARDWARE', hardware: hw });
-          dispatch({ type: 'SET_STEP', step: 'welcome' });
+          // Start at model instead of welcome/dataset
+          dispatch({ type: 'SET_STEP', step: 'model' });
         }
       } catch (err) {
         if (!cancelled) {
@@ -313,141 +317,184 @@ export function App({ debug = false }: AppProps) {
     }
   }, [state.hardware, state.model, state.datasetMeta, state.config, state.hfToken, state.initialLoss, state.lastCheckpoint, state.step, debug]);
 
-  // ── Render current step ──
-  switch (state.step) {
-    case 'initializing':
-      return (
-        <Box flexDirection="column" padding={1}>
-          <Spinner message="Detecting hardware..." />
-        </Box>
-      );
+  // Determine the active tab
+  const getActiveTab = (): 'model' | 'dataset' | 'train' | null => {
+    switch (state.step) {
+      case 'model': return 'model';
+      case 'dataset': return 'dataset';
+      case 'config':
+      case 'dependencies':
+      case 'training':
+      case 'export':
+      case 'done': return 'train';
+      default: return null;
+    }
+  };
 
-    case 'welcome':
-      return (
-        <Welcome
-          hardware={state.hardware!}
-          onContinue={() => dispatch({ type: 'SET_STEP', step: 'dataset' })}
-        />
-      );
+  const activeTab = getActiveTab();
 
-    case 'dataset':
-      return (
-        <DatasetStep
-          onComplete={(meta) => {
-            dispatch({ type: 'SET_DATASET', meta });
-            dispatch({ type: 'SET_STEP', step: 'model' });
-          }}
-          onBack={() => dispatch({ type: 'SET_STEP', step: 'welcome' })}
-        />
-      );
-
-    case 'model':
-      return (
-        <ModelStep
-          hardware={state.hardware!}
-          onComplete={(model, hfToken) => {
-            dispatch({ type: 'SET_MODEL', model, hfToken });
-            // Compute auto-config
-            const config = computeAutoConfig(state.hardware!, model, state.datasetMeta!);
-            dispatch({ type: 'SET_CONFIG', config });
-            dispatch({ type: 'SET_STEP', step: 'config' });
-          }}
-          onBack={() => dispatch({ type: 'SET_STEP', step: 'dataset' })}
-        />
-      );
-
-    case 'config':
-      return (
-        <ConfigStep
-          config={state.config!}
-          onConfirm={async (finalConfig) => {
-            dispatch({ type: 'SET_CONFIG', config: finalConfig });
-
-            // Check if dependencies need setup
-            const ready = await areDependenciesReady();
-            if (!ready) {
-              dispatch({ type: 'SET_STEP', step: 'dependencies' });
-              try {
-                await setupDependencies(state.hardware!.backend, {
-                  onStatus: (msg) => setDepStatus(msg),
-                  onProgress: (_step, _total, msg) => setDepStatus(msg),
-                  onWarning: () => {},
-                });
-                // Dependencies ready, start training
-                await startTraining();
-              } catch (err) {
-                const e = toPlainLanguageError(err);
-                dispatch({ type: 'SET_ERROR', message: e.userMessage, guidance: e.guidance });
-              }
-            } else {
-              await startTraining();
-            }
-          }}
-          onBack={() => dispatch({ type: 'SET_STEP', step: 'model' })}
-        />
-      );
-
-    case 'dependencies':
-      return (
-        <Box flexDirection="column" padding={1}>
-          <Text bold color="cyan">Setting up Orb for the first time</Text>
-          <Text dimColor>This only happens once and may take a few minutes.</Text>
-          <Box marginTop={1}>
-            <Spinner message={depStatus || 'Installing dependencies...'} />
+  const renderStep = () => {
+    switch (state.step) {
+      case 'initializing':
+        return (
+          <Box flexDirection="column" padding={1}>
+            <Spinner message="Detecting hardware..." />
           </Box>
-        </Box>
-      );
+        );
 
-    case 'training':
-      return (
-        <TrainingStep
-          modelId={state.model!.id}
-          totalSteps={state.config!.totalSteps}
-          progress={state.trainingProgress}
-          stage={state.trainingStage}
-          lastCheckpoint={state.lastCheckpoint}
-          initialLoss={state.initialLoss}
-        />
-      );
-
-    case 'export':
-      return (
-        <ExportStep
-          stages={state.exportStages}
-          currentStage={state.exportStages.find((s) => s.status === 'active')?.label ?? ''}
-        />
-      );
-
-    case 'done':
-      return (
-        <DoneStep
-          ggufPath={state.ggufPath ?? ''}
-          modelfilePath={state.modelfilePath ?? ''}
-          modelName={state.ollamaModelName ?? ''}
-          ollamaImported={state.ollamaImported}
-          fileSize={state.ggufFileSize ?? ''}
-          onExit={() => exit()}
-        />
-      );
-
-    case 'error':
-      return (
-        <Box flexDirection="column" padding={1}>
-          <ErrorBox
-            message={state.error?.message ?? 'An unknown error occurred.'}
-            guidance={state.error?.guidance}
+      case 'welcome':
+        return (
+          <Welcome
+            hardware={state.hardware!}
+            onContinue={() => dispatch({ type: 'SET_STEP', step: 'model' })}
           />
-          {state.lastCheckpoint && (
-            <Box marginTop={1}>
-              <Text color="yellow">
-                💾 Your training progress was saved. Run Orb again to resume.
-              </Text>
-            </Box>
-          )}
-        </Box>
-      );
+        );
 
-    default:
-      return <Text>Unknown state</Text>;
-  }
+      case 'model':
+        return (
+          <ModelStep
+            hardware={state.hardware!}
+            onComplete={(model, hfToken) => {
+              dispatch({ type: 'SET_MODEL', model, hfToken });
+              dispatch({ type: 'SET_STEP', step: 'dataset' });
+            }}
+            onBack={() => dispatch({ type: 'SET_STEP', step: 'model' })} // no back from model
+          />
+        );
+
+      case 'dataset':
+        return (
+          <DatasetStep
+            onComplete={(meta) => {
+              dispatch({ type: 'SET_DATASET', meta });
+              // Compute auto-config now that both model and dataset are known
+              const config = computeAutoConfig(state.hardware!, state.model!, meta);
+              dispatch({ type: 'SET_CONFIG', config });
+              dispatch({ type: 'SET_STEP', step: 'config' });
+            }}
+            onBack={() => dispatch({ type: 'SET_STEP', step: 'model' })}
+          />
+        );
+
+      case 'config':
+        return (
+          <ConfigStep
+            config={state.config!}
+            onConfirm={async (finalConfig) => {
+              dispatch({ type: 'SET_CONFIG', config: finalConfig });
+
+              // Check if dependencies need setup
+              const ready = await areDependenciesReady();
+              if (!ready) {
+                dispatch({ type: 'SET_STEP', step: 'dependencies' });
+                try {
+                  await setupDependencies(state.hardware!.backend, {
+                    onStatus: (msg) => setDepStatus(msg),
+                    onProgress: (_step, _total, msg) => setDepStatus(msg),
+                    onWarning: () => {},
+                  });
+                  // Dependencies ready, start training
+                  await startTraining();
+                } catch (err) {
+                  const e = toPlainLanguageError(err);
+                  dispatch({ type: 'SET_ERROR', message: e.userMessage, guidance: e.guidance });
+                }
+              } else {
+                await startTraining();
+              }
+            }}
+            onBack={() => dispatch({ type: 'SET_STEP', step: 'dataset' })}
+          />
+        );
+
+      case 'dependencies':
+        return (
+          <Box flexDirection="column" padding={1}>
+            <Text bold color={INK.primary}>FIRST-TIME SETUP</Text>
+            <Text color={INK.dim}>This only happens once and may take a few minutes.</Text>
+            <Box marginTop={1}>
+              <Spinner message={depStatus || 'Installing dependencies...'} />
+            </Box>
+          </Box>
+        );
+
+      case 'training':
+        return (
+          <TrainingStep
+            modelId={state.model!.id}
+            totalSteps={state.config!.totalSteps}
+            progress={state.trainingProgress}
+            stage={state.trainingStage}
+            lastCheckpoint={state.lastCheckpoint}
+            initialLoss={state.initialLoss}
+          />
+        );
+
+      case 'export':
+        return (
+          <ExportStep
+            stages={state.exportStages}
+            currentStage={state.exportStages.find((s) => s.status === 'active')?.label ?? ''}
+          />
+        );
+
+      case 'done':
+        return (
+          <DoneStep
+            ggufPath={state.ggufPath ?? ''}
+            modelfilePath={state.modelfilePath ?? ''}
+            modelName={state.ollamaModelName ?? ''}
+            ollamaImported={state.ollamaImported}
+            fileSize={state.ggufFileSize ?? ''}
+            onExit={() => exit()}
+          />
+        );
+
+      case 'error':
+        return (
+          <Box flexDirection="column" padding={1}>
+            <ErrorBox
+              message={state.error?.message ?? 'An unknown error occurred.'}
+              guidance={state.error?.guidance}
+            />
+            {state.lastCheckpoint && (
+              <Box marginTop={1}>
+                <Text color={INK.gold}>
+                  Your training progress was saved. Run Orb again to resume.
+                </Text>
+              </Box>
+            )}
+          </Box>
+        );
+
+      default:
+        return <Text>Unknown state</Text>;
+    }
+  };
+
+  const getMascotState = (): 'idle' | 'working' | 'done' => {
+    switch (state.step) {
+      case 'initializing':
+      case 'dependencies':
+      case 'training':
+      case 'export':
+        return 'working';
+      case 'done':
+        return 'done';
+      default:
+        // Could also be 'working' during dataset mapping/validation but we rely on sub-spinners there
+        return 'idle';
+    }
+  };
+
+  return (
+    <Box flexDirection="column">
+      <Box paddingX={1} paddingY={1}>
+        <Mascot state={getMascotState()} />
+        <Text bold color={INK.primary}> ORB</Text>
+      </Box>
+      {activeTab && <TabHeader activeTab={activeTab} />}
+      {renderStep()}
+    </Box>
+  );
 }

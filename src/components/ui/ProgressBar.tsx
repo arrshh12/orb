@@ -1,6 +1,7 @@
 import React from 'react';
 import { Box, Text, useStdout } from 'ink';
 import { ProgressBar as InkProgressBar } from '@inkjs/ui';
+import { INK } from '../../utils/colors.js';
 
 interface ProgressBarProps {
   /** Current step / count */
@@ -13,7 +14,6 @@ interface ProgressBarProps {
   etaMinutes?: number;
 }
 
-/** Format minutes to a short human-readable string */
 function formatEta(minutes: number): string {
   if (minutes < 1) return '< 1 min';
   if (minutes < 60) return `~${Math.round(minutes)} min`;
@@ -23,9 +23,8 @@ function formatEta(minutes: number): string {
 }
 
 /**
- * Training progress bar with percentage, step count, and ETA.
- *
- *   Training ━━━━━━━━━━━━━━━━━━━━━━━━ 67% (302/450)  ETA: ~9 min
+ * Training progress bar.
+ * Primary cyan label, white percentage, dim step count, gold ETA.
  */
 export function ProgressBar({
   current,
@@ -41,14 +40,13 @@ export function ProgressBar({
   const stepStr = `(${current}/${total})`;
   const etaStr = etaMinutes != null ? `ETA: ${formatEta(etaMinutes)}` : '';
 
-  // Calculate how much space the bar can take
   const labelLen = label ? label.length + 1 : 0;
   const suffixLen = ` ${percentStr} ${stepStr}${etaStr ? `  ${etaStr}` : ''}`.length;
   const barWidth = Math.max(10, termWidth - labelLen - suffixLen - 6);
 
   return (
     <Box>
-      {label && <Text color="cyan" bold>{label} </Text>}
+      {label && <Text color={INK.primary} bold>{label} </Text>}
       <Box width={barWidth}>
         <InkProgressBar value={percent} />
       </Box>
@@ -56,11 +54,11 @@ export function ProgressBar({
         {' '}
         <Text bold color="white">{percentStr}</Text>
         {' '}
-        <Text color="gray">{stepStr}</Text>
+        <Text color={INK.dim}>{stepStr}</Text>
         {etaStr && (
           <>
             {'  '}
-            <Text color="yellow">{etaStr}</Text>
+            <Text color={INK.gold}>{etaStr}</Text>
           </>
         )}
       </Text>

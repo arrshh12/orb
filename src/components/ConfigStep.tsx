@@ -3,6 +3,7 @@ import { Box, Text, Newline } from 'ink';
 import { Select, TextInput } from '@inkjs/ui';
 import type { AutoConfigResult, LoraConfig, TrainingParams } from '../types/config.js';
 import { ConfirmPrompt } from './ui/ConfirmPrompt.js';
+import { INK, glyph } from '../utils/colors.js';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -39,62 +40,63 @@ function formatTimeRange(low: number, high: number): string {
 function ConfigCard({ config }: { config: AutoConfigResult }): React.ReactElement {
   const { lora, training, seqLength, totalSteps, vramEstimate, timeEstimate, availableMemoryGB, fits } = config;
   const effBatch = training.batchSize * training.gradientAccumulationSteps;
+  const divider = `  ${glyph.separator.repeat(38)}`;
 
   return (
     <Box
       flexDirection="column"
-      borderStyle="round"
-      borderColor={fits ? 'cyan' : 'yellow'}
+      borderStyle="single"
+      borderColor={INK.secondary}
       paddingX={2}
       paddingY={0}
       marginX={1}
       marginBottom={1}
     >
-      <Text bold color="cyan">{'⚙ Training Configuration'}</Text>
+      <Text bold color={INK.primary}>{'TRAINING CONFIGURATION'}</Text>
       <Newline />
-      <Text>{'  LoRA rank:       '}<Text color="white" bold>{lora.rank}</Text></Text>
-      <Text>{'  LoRA alpha:      '}<Text color="white">{lora.alpha}</Text></Text>
-      <Text>{'  Sequence length: '}<Text color="white" bold>{seqLength} tokens</Text></Text>
+      <Text><Text color={INK.dim}>{'  LoRA rank:       '}</Text><Text color="white" bold>{lora.rank}</Text></Text>
+      <Text><Text color={INK.dim}>{'  LoRA alpha:      '}</Text><Text color="white">{lora.alpha}</Text></Text>
+      <Text><Text color={INK.dim}>{'  Sequence length: '}</Text><Text color="white" bold>{seqLength} tokens</Text></Text>
       <Text>
-        {'  Batch size:      '}
+        <Text color={INK.dim}>{'  Batch size:      '}</Text>
         <Text color="white" bold>{training.batchSize}</Text>
-        <Text color="gray">{` (×${training.gradientAccumulationSteps} accum = ${effBatch} eff.)`}</Text>
+        <Text color={INK.dim}>{` (x${training.gradientAccumulationSteps} accum = ${effBatch} eff.)`}</Text>
       </Text>
-      <Text>{'  Learning rate:   '}<Text color="white" bold>{training.learningRate}</Text></Text>
-      <Text>{'  Epochs:          '}<Text color="white">{training.epochs}</Text></Text>
-      <Text>{'  Total steps:     '}<Text color="white" bold>{'~'}{totalSteps}</Text></Text>
+      <Text><Text color={INK.dim}>{'  Learning rate:   '}</Text><Text color="white" bold>{training.learningRate}</Text></Text>
+      <Text><Text color={INK.dim}>{'  Epochs:          '}</Text><Text color="white">{training.epochs}</Text></Text>
+      <Text><Text color={INK.dim}>{'  Total steps:     '}</Text><Text color="white" bold>{'~'}{totalSteps}</Text></Text>
       {training.gradientCheckpointing && (
-        <Text>{'  Grad checkpoint: '}<Text color="green">{'✓ enabled'}</Text></Text>
+        <Text><Text color={INK.dim}>{'  Grad checkpoint: '}</Text><Text color={INK.primary}>{'[ON]'}</Text></Text>
       )}
       {training.use8BitOptimizer && (
-        <Text>{'  8-bit optimizer: '}<Text color="green">{'✓ enabled'}</Text></Text>
+        <Text><Text color={INK.dim}>{'  8-bit optimizer: '}</Text><Text color={INK.primary}>{'[ON]'}</Text></Text>
       )}
 
       <Newline />
-      <Text color="gray">{'  ─'.repeat(20)}</Text>
+      <Text color={INK.secondary}>{divider}</Text>
       <Newline />
 
       <Text>
-        {'  Memory:  '}
-        <Text color={fits ? 'green' : 'yellow'} bold>{'~'}{formatGB(vramEstimate.totalGB)}</Text>
-        <Text color="gray">{' / '}{formatGB(availableMemoryGB)}{' VRAM'}</Text>
+        <Text color={INK.dim}>{'  Memory:  '}</Text>
+        <Text color={fits ? INK.primary : INK.warning} bold>{'~'}{formatGB(vramEstimate.totalGB)}</Text>
+        <Text color={INK.dim}>{' / '}{formatGB(availableMemoryGB)}{' VRAM'}</Text>
       </Text>
       <Text>
-        {'  Time:    '}
+        <Text color={INK.dim}>{'  Time:    '}</Text>
         <Text color="white" bold>{formatTimeRange(timeEstimate.lowMinutes, timeEstimate.highMinutes)}</Text>
-        <Text color="gray">{' (estimate)'}</Text>
+        <Text color={INK.dim}>{' (estimate)'}</Text>
       </Text>
 
       <Newline />
-      <Text color="gray">{'  ─'.repeat(20)}</Text>
+      <Text color={INK.secondary}>{divider}</Text>
 
       {fits ? (
-        <Text color="green" bold>{'  ✓ This should fit on your GPU.'}</Text>
+        <Text color={INK.primary} bold>{`  [FITS] Configuration fits available VRAM.`}</Text>
       ) : (
         <Box flexDirection="column">
-          <Text color="yellow" bold>{'  ⚠ This may not fit in your available VRAM.'}</Text>
+          <Text color={INK.warning} bold>{`  [TIGHT] May not fit in available VRAM.`}</Text>
           {config.fitFailureReason && (
-            <Text color="yellow" dimColor>{'    '}{config.fitFailureReason}</Text>
+            <Text color={INK.warning}>{'    '}{config.fitFailureReason}</Text>
           )}
         </Box>
       )}
@@ -155,11 +157,12 @@ function AdjustForm({ config, onSave }: {
 
   return (
     <Box flexDirection="column" marginX={2}>
-      <Text color="gray" dimColor>
+      <Text color={INK.dim}>
         Press Enter to keep the current value, or type a new one:
       </Text>
       <Box marginTop={0}>
-        <Text color="cyan" bold>{current.label}: </Text>
+        <Text color={INK.primary} bold>{glyph.prompt} </Text>
+        <Text color={INK.dim}>{current.label}: </Text>
         <TextInput
           placeholder={current.placeholder}
           onSubmit={handleSubmit}
@@ -209,8 +212,7 @@ export function ConfigStep({ config, onConfirm, onBack }: ConfigStepProps): Reac
     <Box flexDirection="column">
       {/* Header */}
       <Box marginX={1} marginBottom={1}>
-        <Text bold color="cyan">{'⚙ Step 3: '}</Text>
-        <Text bold>Review Configuration</Text>
+        <Text bold color={INK.text}>REVIEW CONFIGURATION</Text>
       </Box>
 
       {/* Config card — always shown */}
@@ -221,9 +223,9 @@ export function ConfigStep({ config, onConfirm, onBack }: ConfigStepProps): Reac
         <Box marginX={2}>
           <Select
             options={[
-              { label: '🚀 Start training', value: 'start' },
-              { label: '🔧 Adjust settings', value: 'adjust' },
-              { label: '← Cancel', value: 'cancel' },
+              { label: `${glyph.bullet} START TRAINING`, value: 'start' },
+              { label: `${glyph.bullet} ADJUST SETTINGS`, value: 'adjust' },
+              { label: `${glyph.bullet} CANCEL`, value: 'cancel' },
             ]}
             onChange={handleActionSelect}
           />
