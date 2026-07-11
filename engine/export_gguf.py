@@ -33,7 +33,7 @@ _SEARCH_DIRS: list[str] = [
     os.path.join(sys.prefix, "lib", "python*", "site-packages", "llama_cpp"),
     os.path.join(sys.prefix, "Lib", "site-packages", "llama_cpp"),
     # Common user installs.
-    os.path.expanduser("~/.loom/llama-cpp"),
+    os.path.expanduser("~/.orb/llama-cpp"),
     os.path.expanduser("~/llama.cpp"),
     # System‑wide.
     "/usr/local/share/llama.cpp",
@@ -132,7 +132,7 @@ def export_gguf(
     if convert_script is None:
         emit_error(
             "Cannot find convert_hf_to_gguf.py. "
-            "Install llama-cpp-python or place llama.cpp in ~/.loom/llama-cpp/.",
+            "Install llama-cpp-python or place llama.cpp in ~/.orb/llama-cpp/.",
             detail="Searched: " + ", ".join(_SEARCH_DIRS),
             recoverable=False,
         )

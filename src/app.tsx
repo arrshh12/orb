@@ -238,6 +238,8 @@ export function App({ debug = false }: AppProps) {
       },
     };
 
+    let engineHasError = false;
+
     try {
       const callbacks = createDefaultCallbacks({
         onStage: (msg) => {
@@ -295,10 +297,11 @@ export function App({ debug = false }: AppProps) {
           dispatch({ type: 'SET_STEP', step: 'done' });
         },
         onError: (msg) => {
+          engineHasError = true;
           dispatch({ type: 'SET_ERROR', message: msg.message, guidance: msg.detail });
         },
         onExit: (code) => {
-          if (code !== 0 && state.step !== 'done' && state.step !== 'error') {
+          if (code !== 0 && !engineHasError && state.step !== 'done') {
             dispatch({
               type: 'SET_ERROR',
               message: 'The training engine exited unexpectedly.',
