@@ -6,7 +6,7 @@ import { Spinner } from './ui/Spinner.js';
 import { ErrorBox } from './ui/ErrorBox.js';
 import { ConfirmPrompt } from './ui/ConfirmPrompt.js';
 import { loadAndValidateDataset, exportNormalizedDataset, findLocalDatasets, isKaggleDatasetId, resolveKaggleDataset } from '../core/dataset.js';
-import { searchKaggleDatasets, type KaggleDatasetResult } from '../utils/kaggle-fetcher.js';
+import { searchKaggleDatasets, saveKaggleCredentials, type KaggleDatasetResult } from '../utils/kaggle-fetcher.js';
 import { getTempDir } from '../utils/fs.js';
 import { PlainLanguageError } from '../utils/errors.js';
 import { INK, glyph } from '../utils/colors.js';
@@ -25,6 +25,8 @@ type Phase =
   | 'kaggle-searching'
   | 'kaggle-results'
   | 'kaggle-downloading'
+  | 'kaggle-auth-username'
+  | 'kaggle-auth-key'
   | 'validating'     // loading and validating
   | 'mapping'        // ambiguous schema — user picks column mapping
   | 'preview'        // show preview + confirm
@@ -157,6 +159,8 @@ export function DatasetStep({ onComplete, onBack }: DatasetStepProps): React.Rea
   const [validation, setValidation] = useState<DatasetValidationResult | null>(null);
   const [selectedMapping, setSelectedMapping] = useState<ColumnMapping | undefined>(undefined);
   const [kaggleSearchResults, setKaggleSearchResults] = useState<KaggleDatasetResult[]>([]);
+  const [kaggleUsername, setKaggleUsername] = useState('');
+  const [pendingKaggleAction, setPendingKaggleAction] = useState<{ type: 'search' | 'download', payload: string } | null>(null);
 
   React.useEffect(() => {
     findLocalDatasets().then((files) => {
@@ -188,6 +192,11 @@ export function DatasetStep({ onComplete, onBack }: DatasetStepProps): React.Rea
         setPhase('preview');
       }
     } catch (err) {
+      if (err instanceof PlainLanguageError && err.userMessage === 'Kaggle credentials not found.') {
+        setPendingKaggleAction({ type: 'download', payload: trimmed });
+        setPhase('kaggle-auth-username');
+        return;
+      }
       setError(err instanceof Error ? err : String(err));
       setPhase('error');
     }
@@ -202,6 +211,11 @@ export function DatasetStep({ onComplete, onBack }: DatasetStepProps): React.Rea
       setKaggleSearchResults(results);
       setPhase('kaggle-results');
     } catch (err) {
+      if (err instanceof PlainLanguageError && err.userMessage === 'Kaggle credentials not found.') {
+        setPendingKaggleAction({ type: 'search', payload: trimmed });
+        setPhase('kaggle-auth-username');
+        return;
+      }
       setError(err instanceof Error ? err : String(err));
       setPhase('error');
     }
@@ -235,6 +249,27 @@ export function DatasetStep({ onComplete, onBack }: DatasetStepProps): React.Rea
       setPhase('error');
     }
   }, [filePath, selectedMapping, onComplete, onBack]);
+
+  const handleKaggleAuthKeySubmit = useCallback(async (key: string) => {
+    const trimmedKey = key.trim();
+    if (!trimmedKey || !kaggleUsername) return;
+    
+    try {
+      await saveKaggleCredentials(kaggleUsername, trimmedKey);
+      
+      // Retry the pending action
+      if (pendingKaggleAction?.type === 'search') {
+        handleKaggleSearchSubmit(pendingKaggleAction.payload);
+      } else if (pendingKaggleAction?.type === 'download') {
+        handlePathSubmit(pendingKaggleAction.payload);
+      } else {
+        setPhase('select');
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err : String(err));
+      setPhase('error');
+    }
+  }, [kaggleUsername, pendingKaggleAction, handleKaggleSearchSubmit, handlePathSubmit]);
 
   return (
     <Box flexDirection="column">
@@ -338,6 +373,51 @@ export function DatasetStep({ onComplete, onBack }: DatasetStepProps): React.Rea
       {/* Phase: Kaggle Downloading */}
       {phase === 'kaggle-downloading' && (
         <Spinner message={`Downloading Kaggle dataset...`} />
+      )}
+
+      {/* Phase: Kaggle Auth */}
+      {phase === 'kaggle-auth-username' && (
+        <Box flexDirection="column" marginX={2}>
+          <Text color={INK.warning} bold>{`${glyph.warning} KAGGLE CREDENTIALS REQUIRED`}</Text>
+          <Text color={INK.dim}>
+            To fetch datasets, Orb needs your Kaggle API credentials.
+          </Text>
+          <Text color={INK.dim}>
+            Get these from: <Text color="white" underline>https://www.kaggle.com/settings</Text> {'->'} Create New Token
+          </Text>
+          <Box marginTop={1}>
+            <Text color={INK.primary} bold>{`${glyph.prompt} Username: `}</Text>
+            <TextInput
+              placeholder="e.g. john_doe"
+              onSubmit={(val) => {
+                const trimmed = val.trim();
+                if (trimmed) {
+                  setKaggleUsername(trimmed);
+                  setPhase('kaggle-auth-key');
+                }
+              }}
+            />
+          </Box>
+        </Box>
+      )}
+      
+      {phase === 'kaggle-auth-key' && (
+        <Box flexDirection="column" marginX={2}>
+          <Text color={INK.warning} bold>{`${glyph.warning} KAGGLE CREDENTIALS REQUIRED`}</Text>
+          <Text color={INK.dim}>
+            To fetch datasets, Orb needs your Kaggle API credentials.
+          </Text>
+          <Text color={INK.dim}>
+            Get these from: <Text color="white" underline>https://www.kaggle.com/settings</Text> {'->'} Create New Token
+          </Text>
+          <Box marginTop={1}>
+            <Text color={INK.primary} bold>{`${glyph.prompt} API Key or Token: `}</Text>
+            <TextInput
+              placeholder="Paste your 32-char key or KGAT_ token"
+              onSubmit={handleKaggleAuthKeySubmit}
+            />
+          </Box>
+        </Box>
       )}
 
       {/* Phase: Validating */}

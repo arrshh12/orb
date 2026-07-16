@@ -46,31 +46,53 @@ async function readKaggleJson(): Promise<Record<string, string> | null> {
 }
 
 /**
+ * Read and parse ~/.kaggle/access_token if it exists (Kaggle's new token format).
+ */
+async function readKaggleTokenFile(): Promise<string | null> {
+  const kaggleTokenPath = path.join(os.homedir(), '.kaggle', 'access_token');
+  try {
+    const content = await fs.readFile(kaggleTokenPath, 'utf8');
+    return content.trim();
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Auto-detect Kaggle authentication.
  *
  * Checks in order of priority:
- *  1. KGAT token — env var `KAGGLE_TOKEN` or `token` field in kaggle.json starting with `KGAT_`
- *  2. Environment variables — `KAGGLE_USERNAME` + `KAGGLE_KEY`
- *  3. kaggle.json file — `username` + `key` fields
+ *  1. KGAT token — env vars `KAGGLE_API_TOKEN` or `KAGGLE_TOKEN`
+ *  2. KGAT token file — `~/.kaggle/access_token`
+ *  3. KGAT token from kaggle.json
+ *  4. Basic auth — env vars `KAGGLE_USERNAME` + `KAGGLE_KEY`
+ *  5. Basic auth — `~/.kaggle/kaggle.json`
  */
 export async function getKaggleAuth(): Promise<KaggleAuth | null> {
   // 1. KGAT bearer token from environment
-  if (process.env.KAGGLE_TOKEN && process.env.KAGGLE_TOKEN.startsWith('KGAT_')) {
-    return { type: 'bearer', token: process.env.KAGGLE_TOKEN };
+  const envToken = process.env.KAGGLE_API_TOKEN || process.env.KAGGLE_TOKEN;
+  if (envToken && envToken.startsWith('KGAT_')) {
+    return { type: 'bearer', token: envToken };
   }
 
-  // 1b. KGAT bearer token from kaggle.json
+  // 2. KGAT bearer token from access_token file
+  const fileToken = await readKaggleTokenFile();
+  if (fileToken && fileToken.startsWith('KGAT_')) {
+    return { type: 'bearer', token: fileToken };
+  }
+
+  // 3. KGAT bearer token from kaggle.json
   const kaggleJson = await readKaggleJson();
   if (kaggleJson?.token && typeof kaggleJson.token === 'string' && kaggleJson.token.startsWith('KGAT_')) {
     return { type: 'bearer', token: kaggleJson.token };
   }
 
-  // 2. Basic auth from environment variables
+  // 4. Basic auth from environment variables
   if (process.env.KAGGLE_USERNAME && process.env.KAGGLE_KEY) {
     return { type: 'basic', username: process.env.KAGGLE_USERNAME, key: process.env.KAGGLE_KEY };
   }
 
-  // 3. Basic auth from kaggle.json
+  // 5. Basic auth from kaggle.json
   if (kaggleJson?.username && kaggleJson?.key) {
     return { type: 'basic', username: kaggleJson.username, key: kaggleJson.key };
   }
@@ -110,6 +132,25 @@ export async function getKaggleCredentials(): Promise<{ username: string; key: s
   return null;
 }
 
+/**
+ * Save Kaggle API credentials.
+ * If key is a bearer token starting with KGAT_, saves to ~/.kaggle/access_token.
+ * Otherwise, saves username and key to ~/.kaggle/kaggle.json.
+ */
+export async function saveKaggleCredentials(username: string, key: string): Promise<void> {
+  const kaggleDir = path.join(os.homedir(), '.kaggle');
+  await ensureDir(kaggleDir);
+  
+  if (key.startsWith('KGAT_')) {
+    const kaggleTokenPath = path.join(kaggleDir, 'access_token');
+    await fs.writeFile(kaggleTokenPath, key, { mode: 0o600 });
+  } else {
+    const kaggleJsonPath = path.join(kaggleDir, 'kaggle.json');
+    const credentials = { username, key };
+    await fs.writeFile(kaggleJsonPath, JSON.stringify(credentials, null, 2), { mode: 0o600 });
+  }
+}
+
 // ─── Search ──────────────────────────────────────────────────────────────────
 
 /**
@@ -129,7 +170,7 @@ export async function searchKaggleDatasets(query: string): Promise<KaggleDataset
   const params = new URLSearchParams({
     search: query,
     sortBy: 'hottest',
-    fileSizeMax: '500000000',
+    maxSize: '500000000',
   });
 
   const url = `https://www.kaggle.com/api/v1/datasets/list?${params.toString()}`;
