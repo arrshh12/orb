@@ -1,6 +1,6 @@
 {
   "name": "orb-finetune",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Fine-tune any Hugging Face model on your own laptop using QLoRA, then export to Ollama-ready GGUF.",
   "type": "module",
   "bin": {
@@ -14,7 +14,14 @@
     "test:integration": "vitest run --config vitest.integration.config.ts",
     "lint": "tsc --noEmit"
   },
-  "keywords": ["qlora", "fine-tuning", "llm", "ollama", "gguf", "lora"],
+  "keywords": [
+    "qlora",
+    "fine-tuning",
+    "llm",
+    "ollama",
+    "gguf",
+    "lora"
+  ],
   "license": "MIT",
   "engines": {
     "node": ">=18.0.0"

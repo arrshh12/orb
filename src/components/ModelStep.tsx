@@ -8,7 +8,7 @@ import { ErrorBox } from './ui/ErrorBox.js';
 import { ConfirmPrompt } from './ui/ConfirmPrompt.js';
 import { INK, glyph } from '../utils/colors.js';
 
-import { validateModel } from '../core/model-validator.js';
+import { validateModel, getHardwareAwareModelSuggestions } from '../core/model-validator.js';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -181,8 +181,21 @@ export function ModelStep({ hardware, onComplete, onBack }: ModelStepProps): Rea
       {phase === 'input' && (
         <Box flexDirection="column" marginX={2}>
           <Text color={INK.dim}>
-            Enter a HuggingFace model ID:
+            Enter a HuggingFace model ID. Based on your hardware, we suggest:
           </Text>
+          <Box flexDirection="column" marginX={2} marginY={1}>
+            {(() => {
+              const memAvailableMB = hardware.backend === 'cpu-only' ? hardware.ramFreeMB : 
+                (hardware.gpu.type === 'nvidia' ? hardware.gpu.vramFreeMB : 
+                (hardware.gpu.type === 'apple-silicon' ? hardware.gpu.unifiedMemoryFreeMB : hardware.ramFreeMB));
+              const suggestions = getHardwareAwareModelSuggestions(memAvailableMB);
+              return suggestions.map(s => (
+                <Text key={s.id} color={INK.secondary}>
+                  • {s.id} <Text color={INK.dim}>({s.name})</Text>
+                </Text>
+              ));
+            })()}
+          </Box>
           <Box marginTop={0}>
             <Text color={INK.primary} bold>{`${glyph.prompt} `}</Text>
             <TextInput

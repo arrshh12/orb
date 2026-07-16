@@ -234,3 +234,146 @@ def export_gguf(
     emit_log("info", f"GGUF export complete: {output_path}")
 
     return output_path
+
+
+# ---------------------------------------------------------------------------
+# LoRA GGUF merge
+# ---------------------------------------------------------------------------
+
+
+def _find_export_lora_binary() -> str | None:
+    """Locate the ``llama-export-lora`` (or ``export-lora``) binary."""
+    for name in ("llama-export-lora", "export-lora"):
+        path = shutil.which(name)
+        if path:
+            return path
+
+    # Check known directories.
+    for pattern in _SEARCH_DIRS:
+        for d in glob.glob(pattern):
+            for name in (
+                "llama-export-lora",
+                "export-lora",
+                "llama-export-lora.exe",
+                "export-lora.exe",
+            ):
+                candidate = os.path.join(d, name)
+                if os.path.isfile(candidate):
+                    return candidate
+            # Also check build/ subdirectory.
+            build_dir = os.path.join(d, "build", "bin")
+            if os.path.isdir(build_dir):
+                for name in (
+                    "llama-export-lora",
+                    "export-lora",
+                    "llama-export-lora.exe",
+                    "export-lora.exe",
+                ):
+                    candidate = os.path.join(build_dir, name)
+                    if os.path.isfile(candidate):
+                        return candidate
+
+    return None
+
+
+def export_gguf_from_lora(
+    base_gguf_path: str,
+    lora_gguf_path: str,
+    output_path: str,
+    config: dict[str, Any] | None = None,
+) -> str:
+    """Merge a llama.cpp GGUF LoRA adapter with a base GGUF model.
+
+    Uses ``llama-export-lora`` to produce a single merged GGUF file.
+    If the binary is not found, falls back to copying the base model
+    so the pipeline can continue (the user can merge manually later).
+
+    Parameters
+    ----------
+    base_gguf_path:
+        Path to the base model in GGUF format.
+    lora_gguf_path:
+        Path to the LoRA adapter file (GGUF or ``.bin``).
+    output_path:
+        Destination path for the merged ``.gguf`` file.
+    config:
+        Optional config dict.  If it contains ``llamacpp_export_lora_path``
+        that path is tried first when locating the binary.
+
+    Returns
+    -------
+    str
+        ``output_path`` on success.
+    """
+    os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
+
+    # ---- locate the merge binary -------------------------------------
+    export_bin: str | None = None
+
+    if config and config.get("llamacpp_export_lora_path"):
+        candidate = config["llamacpp_export_lora_path"]
+        if os.path.isfile(candidate):
+            export_bin = candidate
+
+    if export_bin is None:
+        export_bin = _find_export_lora_binary()
+
+    if export_bin is None:
+        emit_log(
+            "warning",
+            "llama-export-lora binary not found — copying base model as fallback. "
+            "Install llama.cpp to enable LoRA merging.",
+        )
+        emit_export_progress(
+            "merging",
+            "llama-export-lora not found; copying base model as fallback.",
+        )
+        shutil.copy2(base_gguf_path, output_path)
+        emit_export_progress(
+            "complete",
+            f"Base model copied (LoRA merge skipped): {output_path}",
+        )
+        return output_path
+
+    # ---- merge -------------------------------------------------------
+    emit_export_progress("merging", "Merging LoRA adapter into base GGUF…")
+
+    cmd = [
+        export_bin,
+        "--model", base_gguf_path,
+        "--lora", lora_gguf_path,
+        "--output", output_path,
+    ]
+
+    emit_log("debug", f"Running: {' '.join(cmd)}")
+
+    result = subprocess.run(
+        cmd,
+        capture_output=True,
+        text=True,
+        timeout=3600,
+    )
+
+    if result.returncode != 0:
+        emit_error(
+            "LoRA merge failed.",
+            detail=result.stderr[-2000:] if result.stderr else "No stderr output",
+            recoverable=False,
+        )
+        raise RuntimeError(
+            f"llama-export-lora failed (exit {result.returncode})"
+        )
+
+    if not os.path.isfile(output_path):
+        emit_error(
+            "LoRA merge completed but output file not found.",
+            detail=f"Expected: {output_path}",
+            recoverable=False,
+        )
+        raise FileNotFoundError(f"Expected merged GGUF at {output_path}")
+
+    emit_export_progress("complete", f"Merged GGUF exported: {output_path}")
+    emit_log("info", f"LoRA merge complete: {output_path}")
+
+    return output_path
+

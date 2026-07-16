@@ -9,19 +9,20 @@ interface SpinnerProps {
   noAnimation?: boolean;
 }
 
-// Braille-dot spinner — feels like a scanning phosphor
+// Orbital Terminal: smooth braille scanning animation
 const SPINNER_FRAMES = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
 
 /**
- * Bioluminescent spinner.
- * Cyan glyph cycling through braille frames at 80ms.
+ * Orbital Terminal spinner.
+ * Neon purple braille glyph cycling at 80ms — feels like a terminal scanner.
  */
 export function Spinner({ message, noAnimation = false }: SpinnerProps): React.ReactElement {
   const frame = useFrameCycle(SPINNER_FRAMES, 80, noAnimation);
 
   return (
     <Box marginX={1}>
-      <Text color={INK.primary}>{frame} </Text>
+      <Text color={INK.primary} bold>{noAnimation ? '⠿' : frame}</Text>
+      <Text color={INK.faint}>{' '}</Text>
       <Text color={INK.text}>{message}</Text>
     </Box>
   );

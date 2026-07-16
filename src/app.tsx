@@ -1,5 +1,6 @@
 /**
  * Root wizard component for Orb.
+ * Orbital Terminal design system — Cyberpunk-Minimalist TUI.
  * Manages the multi-step wizard flow using a state machine.
  * Each step renders its own component and passes data forward.
  */
@@ -34,7 +35,7 @@ import { ErrorBox } from './components/ui/ErrorBox.js';
 import { Spinner } from './components/ui/Spinner.js';
 import { TabHeader } from './components/ui/TabHeader.js';
 import { Mascot } from './components/ui/Mascot.js';
-import { INK } from './utils/colors.js';
+import { INK, glyph } from './utils/colors.js';
 
 // ─── Wizard State ────────────────────────────────────────────────────────────
 
@@ -492,9 +493,14 @@ export function App({ debug = false }: AppProps) {
 
   return (
     <Box flexDirection="column">
-      <Box paddingX={1} paddingY={1}>
+      {/* Orbital Terminal header — mascot + ORB wordmark */}
+      <Box paddingX={1} paddingTop={1} paddingBottom={0} alignItems="center">
         <Mascot state={getMascotState()} />
-        <Text bold color={INK.primary}> ORB</Text>
+        <Text bold color={INK.primary}>{' ORB'}</Text>
+        <Text color={INK.faint}>{'  '}{glyph.separator.repeat(4)}{'  '}</Text>
+        <Text color={INK.secondary}>{'AI MODEL FINE-TUNING'}</Text>
+        <Text color={INK.faint}>{'  '}{glyph.separator.repeat(4)}{'  '}</Text>
+        <Text color={INK.faint}>{'ORBITAL TERMINAL'}</Text>
       </Box>
       {activeTab && <TabHeader activeTab={activeTab} />}
       {renderStep()}

@@ -4,9 +4,11 @@
  * Supports: CSV, TSV, JSON, JSONL, TXT, MD
  */
 
-import { readFile, writeFile, readdir } from 'node:fs/promises';
-import { extname } from 'node:path';
+import { readFile, writeFile, readdir, stat } from 'node:fs/promises';
+import { extname, join } from 'node:path';
 import { parse as csvParse } from 'csv-parse/sync';
+
+import { downloadKaggleDataset } from '../utils/kaggle-fetcher.js';
 
 import type {
   DatasetFormat,
@@ -593,4 +595,68 @@ export async function exportNormalizedDataset(
     },
     normalizedPath,
   };
+}
+
+// ─── Kaggle Dataset Helpers ──────────────────────────────────────────────────
+
+/** Extensions we recognise as dataset files, in preference order */
+const DATASET_EXTENSIONS = ['.csv', '.tsv', '.jsonl', '.json', '.txt', '.md', '.markdown', '.parquet'];
+
+/**
+ * Check if a string looks like a Kaggle dataset identifier.
+ * Expected format: `username/dataset-name` where both parts are alphanumeric
+ * with hyphens and underscores.
+ */
+export function isKaggleDatasetId(input: string): boolean {
+  return /^[a-zA-Z0-9_-]+\/[a-zA-Z0-9_-]+$/.test(input);
+}
+
+/**
+ * Download a Kaggle dataset, extract it, and return the path to the most
+ * likely dataset file (largest file with a supported extension).
+ */
+export async function resolveKaggleDataset(datasetId: string, outputDir: string): Promise<string> {
+  const extractedDir = await downloadKaggleDataset(datasetId, outputDir);
+
+  // Scan extracted directory for supported dataset files
+  let entries: string[];
+  try {
+    entries = await readdir(extractedDir);
+  } catch {
+    throw new PlainLanguageError({
+      userMessage: 'Could not read the extracted dataset directory.',
+      guidance: 'The download may have failed or the archive was empty.',
+    });
+  }
+
+  // Collect files with supported extensions and their sizes
+  const candidates: Array<{ name: string; size: number }> = [];
+
+  for (const name of entries) {
+    const ext = extname(name).toLowerCase();
+    if (!DATASET_EXTENSIONS.includes(ext)) continue;
+
+    try {
+      const filePath = join(extractedDir, name);
+      const fileStat = await stat(filePath);
+      if (fileStat.isFile()) {
+        candidates.push({ name, size: fileStat.size });
+      }
+    } catch {
+      // Skip files we can't stat
+    }
+  }
+
+  if (candidates.length === 0) {
+    throw new PlainLanguageError({
+      userMessage: 'No dataset files found in the downloaded Kaggle archive.',
+      guidance:
+        'The archive didn\'t contain any supported file types (CSV, JSON, JSONL, TSV, TXT, MD, Parquet). ' +
+        'You may need to download and extract it manually.',
+    });
+  }
+
+  // Pick the largest file — most likely the main dataset
+  candidates.sort((a, b) => b.size - a.size);
+  return join(extractedDir, candidates[0]!.name);
 }

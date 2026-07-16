@@ -5,7 +5,9 @@ import type { DatasetMeta, DatasetValidationResult, NormalizedExample, ColumnMap
 import { Spinner } from './ui/Spinner.js';
 import { ErrorBox } from './ui/ErrorBox.js';
 import { ConfirmPrompt } from './ui/ConfirmPrompt.js';
-import { loadAndValidateDataset, exportNormalizedDataset, findLocalDatasets } from '../core/dataset.js';
+import { loadAndValidateDataset, exportNormalizedDataset, findLocalDatasets, isKaggleDatasetId, resolveKaggleDataset } from '../core/dataset.js';
+import { searchKaggleDatasets, type KaggleDatasetResult } from '../utils/kaggle-fetcher.js';
+import { getTempDir } from '../utils/fs.js';
 import { PlainLanguageError } from '../utils/errors.js';
 import { INK, glyph } from '../utils/colors.js';
 
@@ -19,6 +21,10 @@ interface DatasetStepProps {
 type Phase =
   | 'select'         // pick from local files
   | 'input'          // entering file path manually
+  | 'kaggle-search-input'
+  | 'kaggle-searching'
+  | 'kaggle-results'
+  | 'kaggle-downloading'
   | 'validating'     // loading and validating
   | 'mapping'        // ambiguous schema — user picks column mapping
   | 'preview'        // show preview + confirm
@@ -150,6 +156,7 @@ export function DatasetStep({ onComplete, onBack }: DatasetStepProps): React.Rea
   const [error, setError] = useState<Error | string | null>(null);
   const [validation, setValidation] = useState<DatasetValidationResult | null>(null);
   const [selectedMapping, setSelectedMapping] = useState<ColumnMapping | undefined>(undefined);
+  const [kaggleSearchResults, setKaggleSearchResults] = useState<KaggleDatasetResult[]>([]);
 
   React.useEffect(() => {
     findLocalDatasets().then((files) => {
@@ -162,11 +169,17 @@ export function DatasetStep({ onComplete, onBack }: DatasetStepProps): React.Rea
     // Trim whitespace and remove surrounding quotes (added by terminal drag-and-drop)
     const trimmed = path.trim().replace(/^["']|["']$/g, '');
     if (!trimmed) return;
-    setFilePath(trimmed);
-    setPhase('validating');
-
+    
     try {
-      const result = await loadAndValidateDataset(trimmed);
+      let finalPath = trimmed;
+      if (isKaggleDatasetId(trimmed)) {
+        setPhase('kaggle-downloading');
+        finalPath = await resolveKaggleDataset(trimmed, getTempDir());
+      }
+      
+      setFilePath(finalPath);
+      setPhase('validating');
+      const result = await loadAndValidateDataset(finalPath);
       setValidation(result);
 
       if (result.schema.shape === 'unknown' && !result.schema.confident) {
@@ -174,6 +187,20 @@ export function DatasetStep({ onComplete, onBack }: DatasetStepProps): React.Rea
       } else {
         setPhase('preview');
       }
+    } catch (err) {
+      setError(err instanceof Error ? err : String(err));
+      setPhase('error');
+    }
+  }, []);
+
+  const handleKaggleSearchSubmit = useCallback(async (query: string) => {
+    const trimmed = query.trim();
+    if (!trimmed) return;
+    setPhase('kaggle-searching');
+    try {
+      const results = await searchKaggleDatasets(trimmed);
+      setKaggleSearchResults(results);
+      setPhase('kaggle-results');
     } catch (err) {
       setError(err instanceof Error ? err : String(err));
       setPhase('error');
@@ -229,11 +256,14 @@ export function DatasetStep({ onComplete, onBack }: DatasetStepProps): React.Rea
                   const ext = f.split('.').pop()?.toUpperCase() || 'FILE';
                   return { label: `[${ext}] ${f}`, value: f };
                 }),
-                { label: `${glyph.prompt} ENTER PATH MANUALLY`, value: '__manual__' }
+                { label: `${glyph.prompt} SEARCH KAGGLE FOR DATASETS`, value: '__kaggle__' },
+                { label: `${glyph.prompt} ENTER PATH OR KAGGLE ID MANUALLY`, value: '__manual__' }
               ]}
               onChange={(value) => {
                 if (value === '__manual__') {
                   setPhase('input');
+                } else if (value === '__kaggle__') {
+                  setPhase('kaggle-search-input');
                 } else {
                   handlePathSubmit(value);
                 }
@@ -247,7 +277,7 @@ export function DatasetStep({ onComplete, onBack }: DatasetStepProps): React.Rea
       {phase === 'input' && (
         <Box flexDirection="column" marginX={2}>
           <Text color={INK.dim}>
-            Enter the path to your training data (CSV, JSON, JSONL, or TXT):
+            Enter the path to your training data (CSV, JSON, JSONL, or TXT), or paste a Kaggle Dataset ID:
           </Text>
           <Box marginTop={0}>
             <Text color={INK.primary} bold>{`${glyph.prompt} `}</Text>
@@ -262,6 +292,52 @@ export function DatasetStep({ onComplete, onBack }: DatasetStepProps): React.Rea
             </Text>
           </Box>
         </Box>
+      )}
+
+      {/* Phase: Kaggle Search Input */}
+      {phase === 'kaggle-search-input' && (
+        <Box flexDirection="column" marginX={2}>
+          <Text color={INK.dim}>
+            Search Kaggle for datasets:
+          </Text>
+          <Box marginTop={0}>
+            <Text color={INK.primary} bold>{`${glyph.prompt} `}</Text>
+            <TextInput
+              placeholder="e.g., english-quotes"
+              onSubmit={handleKaggleSearchSubmit}
+            />
+          </Box>
+        </Box>
+      )}
+
+      {/* Phase: Kaggle Searching */}
+      {phase === 'kaggle-searching' && (
+        <Spinner message={`Searching Kaggle...`} />
+      )}
+
+      {/* Phase: Kaggle Results */}
+      {phase === 'kaggle-results' && (
+        <Box flexDirection="column" marginX={2}>
+          <Text color={INK.dim}>Select a dataset from Kaggle:</Text>
+          <Box marginTop={0}>
+            {kaggleSearchResults.length > 0 ? (
+              <Select
+                options={kaggleSearchResults.map(res => ({
+                  label: `${res.id} (${formatBytes(res.size)}) - ${res.downloadCount} downloads`,
+                  value: res.id,
+                }))}
+                onChange={(value) => handlePathSubmit(value)}
+              />
+            ) : (
+              <Text color={INK.warning}>No results found.</Text>
+            )}
+          </Box>
+        </Box>
+      )}
+
+      {/* Phase: Kaggle Downloading */}
+      {phase === 'kaggle-downloading' && (
+        <Spinner message={`Downloading Kaggle dataset...`} />
       )}
 
       {/* Phase: Validating */}

@@ -230,21 +230,12 @@ export function summarizeHardware(hw: HardwareInfo): HardwareSummary {
   const backendLabels: Record<BackendType, string> = {
     cuda: 'CUDA (NVIDIA GPU)',
     mlx: 'MLX (Apple Silicon)',
-    'cpu-only': 'CPU only — not supported for training',
+    'cpu-only': 'CPU only (llama.cpp)',
   };
   const backendLabel = backendLabels[hw.backend];
 
-  const viable = hw.backend !== 'cpu-only';
+  const viable = true;
   let refusalReason: string | undefined;
-  if (!viable) {
-    refusalReason =
-      'Orb requires a dedicated GPU (NVIDIA with CUDA or Apple Silicon M-series) ' +
-      'to fine-tune models. Training on CPU alone would take an unreasonable amount ' +
-      'of time (30+ hours for even a small model) and is not supported.\n\n' +
-      'Options:\n' +
-      '  • Use a machine with an NVIDIA GPU or an Apple Silicon Mac\n' +
-      '  • Use a cloud GPU service (Google Colab, Lambda Labs, RunPod)\n';
-  }
 
   return {
     gpuLabel,

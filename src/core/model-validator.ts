@@ -306,3 +306,29 @@ export function quickFitCheck(model: ModelInfo, availableVRAMMB: number): {
       'Consider a smaller model, or Orb will try to optimize batch size and sequence length.',
   };
 }
+
+/**
+ * Generates a list of suggested models sorted from largest that fits in memory down to smallest.
+ */
+export function getHardwareAwareModelSuggestions(availableVRAMMB: number): Array<{ id: string, name: string }> {
+  const availableGB = availableVRAMMB / 1024;
+  
+  // Hardcoded list of popular base models with their estimated 4-bit memory requirements (including overhead)
+  const candidates = [
+    { id: 'meta-llama/Llama-3.1-70B-Instruct', name: 'Llama 3.1 (70B)', neededGB: 40 },
+    { id: 'meta-llama/Llama-3.1-8B-Instruct', name: 'Llama 3.1 (8B)', neededGB: 7 },
+    { id: 'mistralai/Mistral-7B-Instruct-v0.3', name: 'Mistral (7B)', neededGB: 6.5 },
+    { id: 'google/gemma-2-2b-it', name: 'Gemma 2 (2B)', neededGB: 3 },
+    { id: 'Qwen/Qwen2-1.5B-Instruct', name: 'Qwen 2 (1.5B)', neededGB: 2.2 },
+    { id: 'TinyLlama/TinyLlama-1.1B-Chat-v1.0', name: 'TinyLlama (1.1B)', neededGB: 1.5 }
+  ];
+
+  const fittingModels = candidates.filter(c => availableGB >= c.neededGB);
+  
+  // Always return at least the smallest model so the user has an option
+  if (fittingModels.length === 0) {
+    return [candidates[candidates.length - 1]!];
+  }
+  
+  return fittingModels;
+}

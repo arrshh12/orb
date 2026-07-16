@@ -9,8 +9,9 @@ interface ErrorBoxProps {
 }
 
 /**
- * Crimson-bordered error display.
- * Single-border (rectilinear), crimson accent, dim guidance text.
+ * Orbital Terminal error display.
+ * Single-border in error red, bold error header, dim guidance text.
+ * Per Stitch spec: sharp corners, no rounding, status chips with defined colors.
  */
 export function ErrorBox({
   title = 'ERROR',
@@ -27,16 +28,32 @@ export function ErrorBox({
       marginX={1}
       marginY={1}
     >
-      <Text bold color={INK.error}>
-        {`${glyph.error} ${title.toUpperCase()}`}
-      </Text>
+      {/* Title bar — error status chip */}
+      <Box>
+        <Text bold color={INK.error}>
+          {`${glyph.cross} `}
+        </Text>
+        <Text bold color={INK.error}>
+          {title.toUpperCase()}
+        </Text>
+      </Box>
+
+      {/* Separator */}
+      <Text color={INK.faint}>{glyph.separator.repeat(40)}</Text>
+
+      {/* Message */}
       <Box marginTop={0}>
         <Text color="white">{message}</Text>
       </Box>
+
+      {/* Guidance */}
       {guidance && (
         <>
           <Newline />
-          <Text color={INK.dim}>{guidance}</Text>
+          <Box>
+            <Text color={INK.faint}>{glyph.prompt} </Text>
+            <Text color={INK.dim}>{guidance}</Text>
+          </Box>
         </>
       )}
     </Box>

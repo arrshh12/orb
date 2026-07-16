@@ -28,6 +28,7 @@
 - **Hardware Agnostic:** Automatically utilizes NVIDIA CUDA or Apple Silicon (MLX).
 - **Interactive UI:** Step-by-step CLI wizard powered by Ink.
 - **Zero Configuration:** Auto-configures hyperparameters based on your hardware constraints.
+- **Kaggle & Hugging Face Datasets:** Fetch custom datasets directly from Hugging Face or download public/private Kaggle datasets via URLs or dataset slugs.
 - **Ollama Ready:** Merges LoRA adapters and exports directly to a Q4_K_M GGUF format that automatically registers with your local Ollama instance.
 
 ---

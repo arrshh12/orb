@@ -8,36 +8,59 @@ interface TabHeaderProps {
   activeTab: Tab;
 }
 
-const TABS: { id: Tab; label: string }[] = [
-  { id: 'model', label: 'MODEL' },
-  { id: 'dataset', label: 'DATASET' },
-  { id: 'train', label: 'TRAIN' },
+const TABS: { id: Tab; label: string; index: number }[] = [
+  { id: 'model',   label: 'MODEL',   index: 1 },
+  { id: 'dataset', label: 'DATASET', index: 2 },
+  { id: 'train',   label: 'TRAIN',   index: 3 },
 ];
 
 /**
- * Persistent tab navigation header.
- * Active tab glows primary cyan; inactive tabs are muted secondary purple.
- * Rectilinear single-border style per the Bioluminescent spec.
+ * Orbital Terminal tab navigation.
+ * Active tab glows neon purple with ▶ prefix.
+ * Inactive tabs muted violet. Sharp borders per Stitch spec.
  */
 export function TabHeader({ activeTab }: TabHeaderProps): React.ReactElement {
   return (
-    <Box marginX={1} marginBottom={1} borderStyle="single" borderColor={INK.secondary} paddingX={1}>
-      {TABS.map((tab, index) => {
-        const isActive = tab.id === activeTab;
-        const isLast = index === TABS.length - 1;
+    <Box flexDirection="column" marginX={1} marginBottom={0}>
+      {/* Top separator line */}
+      <Box>
+        <Text color={INK.secondary}>
+          {'┌─ '}
+          <Text color={INK.primary} bold>ORBITAL TERMINAL</Text>
+          {' '}
+          <Text color={INK.faint}>v1 · AI FINE-TUNING CLI</Text>
+          {' '}
+        </Text>
+      </Box>
+      {/* Tab row */}
+      <Box borderStyle="single" borderColor={INK.secondary} paddingX={1} paddingY={0}>
+        {TABS.map((tab, index) => {
+          const isActive = tab.id === activeTab;
+          const isLast = index === TABS.length - 1;
 
-        return (
-          <Box key={tab.id}>
-            <Text
-              color={isActive ? INK.primary : INK.dim}
-              bold={isActive}
-            >
-              {isActive ? `${glyph.active} ${tab.label}` : `  ${tab.label}`}
-            </Text>
-            {!isLast && <Text color={INK.secondary}>{'  │  '}</Text>}
-          </Box>
-        );
-      })}
+          return (
+            <Box key={tab.id}>
+              <Box
+                paddingX={1}
+                borderStyle={isActive ? 'single' : undefined}
+                borderColor={isActive ? INK.primary : undefined}
+              >
+                <Text
+                  color={isActive ? INK.primary : INK.faint}
+                  bold={isActive}
+                >
+                  {isActive
+                    ? `${glyph.active} ${tab.index}. ${tab.label}`
+                    : `  ${tab.index}. ${tab.label}`}
+                </Text>
+              </Box>
+              {!isLast && (
+                <Text color={INK.secondary}>{'  │  '}</Text>
+              )}
+            </Box>
+          );
+        })}
+      </Box>
     </Box>
   );
 }

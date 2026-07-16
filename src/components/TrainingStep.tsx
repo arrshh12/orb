@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Box, Text, Newline } from 'ink';
+import { Box, Text } from 'ink';
 import { ProgressBar } from './ui/ProgressBar.js';
 import { Spinner } from './ui/Spinner.js';
 import { INK, glyph } from '../utils/colors.js';
+import { useFrameCycle } from '../utils/useFrameCycle.js';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -30,8 +31,8 @@ function formatDuration(seconds: number): string {
   const m = Math.floor((seconds % 3600) / 60);
   const s = Math.floor(seconds % 60);
   if (h > 0) return `${h}h ${m}m ${s}s`;
-  if (m > 0) return `${m} min ${s} sec`;
-  return `${s} sec`;
+  if (m > 0) return `${m}m ${s}s`;
+  return `${s}s`;
 }
 
 function formatEtaMinutes(seconds: number): number {
@@ -39,15 +40,58 @@ function formatEtaMinutes(seconds: number): number {
 }
 
 function getLossTrend(current: number, initial: number): { arrow: string; color: string } {
-  if (current < initial * 0.95) return { arrow: '↓', color: INK.primary };
-  if (current > initial * 1.05) return { arrow: '↑', color: INK.error };
-  return { arrow: '→', color: INK.gold };
+  if (current < initial * 0.95) return { arrow: glyph.down + ' IMPROVING', color: INK.tertiary };
+  if (current > initial * 1.05) return { arrow: glyph.up + ' DIVERGING', color: INK.error };
+  return { arrow: glyph.arrow + ' STABLE', color: INK.gold };
+}
+
+// ─── Mini Chart ──────────────────────────────────────────────────────────────
+
+/** Renders a compact sparkline for loss trend using block characters. */
+function LossSparkline({ losses }: { losses: number[] }): React.ReactElement | null {
+  if (losses.length < 2) return null;
+  const min = Math.min(...losses);
+  const max = Math.max(...losses);
+  const range = max - min || 1;
+  const bars = ['▁', '▂', '▃', '▄', '▅', '▆', '▇', '█'];
+
+  const sparkStr = losses
+    .slice(-16)
+    .map((v) => bars[Math.floor(((v - min) / range) * (bars.length - 1))])
+    .join('');
+
+  return (
+    <Box>
+      <Text color={INK.faint}>{'  loss curve: '}</Text>
+      <Text color={INK.primary}>{sparkStr}</Text>
+    </Box>
+  );
+}
+
+// ─── Status Chip ──────────────────────────────────────────────────────────────
+
+function StatusChip({ label, value, valueColor }: { label: string; value: string; valueColor?: string }): React.ReactElement {
+  return (
+    <Box marginRight={2}>
+      <Text color={INK.faint}>{label}</Text>
+      <Text color={valueColor ?? INK.text} bold>{value}</Text>
+    </Box>
+  );
+}
+
+// ─── Blinking cursor for activity indicator ───────────────────────────────────
+
+function BlinkCursor(): React.ReactElement {
+  const frames = ['█', ' '];
+  const frame = useFrameCycle(frames, 500, false);
+  return <Text color={INK.primary}>{frame}</Text>;
 }
 
 // ─── Main Component ──────────────────────────────────────────────────────────
 
 /**
- * Live training progress dashboard.
+ * Orbital Terminal live training dashboard.
+ * Block progress bar, loss sparkline, metrics grid, checkpoint log.
  */
 export function TrainingStep({
   modelId,
@@ -58,6 +102,7 @@ export function TrainingStep({
   initialLoss,
 }: TrainingStepProps): React.ReactElement {
   const [elapsedSec, setElapsedSec] = useState(0);
+  const [lossHistory, setLossHistory] = useState<number[]>([]);
   const startTime = useRef(Date.now());
 
   // Track elapsed time
@@ -68,91 +113,144 @@ export function TrainingStep({
     return () => clearInterval(timer);
   }, []);
 
+  // Track loss history for sparkline
+  useEffect(() => {
+    if (progress?.loss != null && progress.loss > 0) {
+      setLossHistory((prev) => [...prev.slice(-32), progress.loss]);
+    }
+  }, [progress?.step]);
+
   const lossTrend = initialLoss != null && progress != null
     ? getLossTrend(progress.loss, initialLoss)
-    : { arrow: '', color: INK.dim };
+    : { arrow: '', color: INK.faint };
 
   const isRunning = progress != null && progress.step > 0;
 
   return (
-    <Box flexDirection="column">
-      {/* Header */}
-      <Box marginX={1} marginBottom={0}>
-        <Text bold color={INK.text}>TRAINING </Text>
-        <Text bold color={INK.primary}>{modelId}</Text>
-      </Box>
+    <Box flexDirection="column" marginX={1}>
+      {/* ── Panel Header ──────────────────────────────────────────────── */}
+      <Box
+        borderStyle="single"
+        borderColor={INK.primary}
+        paddingX={2}
+        paddingY={0}
+        flexDirection="column"
+      >
+        {/* Title bar */}
+        <Box justifyContent="space-between">
+          <Box>
+            <Text color={INK.primary} bold>{'TRAINING PROGRESS'}</Text>
+            <Text color={INK.faint}>{'  │  '}</Text>
+            <Text color={INK.secondary}>{modelId}</Text>
+          </Box>
+          <Box>
+            {isRunning ? (
+              <Box>
+                <Text color={INK.tertiary} bold>{'● ACTIVE  '}</Text>
+                <BlinkCursor />
+              </Box>
+            ) : (
+              <Text color={INK.faint}>{'○ LOADING'}</Text>
+            )}
+          </Box>
+        </Box>
 
-      {/* Progress bar */}
-      <Box marginX={1} marginBottom={0}>
-        <ProgressBar
-          current={progress?.step ?? 0}
-          total={totalSteps}
-          etaMinutes={progress && progress.etaSeconds > 0 ? formatEtaMinutes(progress.etaSeconds) : undefined}
-        />
-      </Box>
+        <Text color={INK.faint}>{glyph.separator.repeat(60)}</Text>
 
-      {/* Stats */}
-      <Box flexDirection="column" marginX={2} marginTop={1}>
+        {/* ── Progress bar ──────────────────────────────────────────────── */}
+        <Box marginY={0}>
+          <ProgressBar
+            current={progress?.step ?? 0}
+            total={totalSteps}
+            label="STEP"
+            etaMinutes={
+              progress && progress.etaSeconds > 0
+                ? formatEtaMinutes(progress.etaSeconds)
+                : undefined
+            }
+          />
+        </Box>
+
+        {/* ── Live metrics ─────────────────────────────────────────────── */}
         {!isRunning ? (
           <Box marginTop={1}>
-            <Spinner message={stage || 'Initializing...'} />
+            <Spinner message={stage || 'Initializing training engine...'} />
           </Box>
         ) : (
           <>
-            <Text>
-              <Text color={INK.dim}>{'Loss:     '}</Text>
-              <Text color="white" bold>{progress!.loss.toFixed(4)}</Text>
-              {' '}
-              <Text color={lossTrend.color}>{lossTrend.arrow}</Text>
+            <Text color={INK.faint}>{glyph.separator.repeat(60)}</Text>
+
+            {/* Metrics row */}
+            <Box flexWrap="wrap" marginTop={0}>
+              <StatusChip
+                label={'  LOSS      '}
+                value={progress!.loss.toFixed(4)}
+                valueColor="white"
+              />
+              <StatusChip
+                label={'  TREND     '}
+                value={lossTrend.arrow}
+                valueColor={lossTrend.color}
+              />
               {initialLoss != null && (
-                <Text color={INK.dim}>{`  (started: ${initialLoss.toFixed(2)})`}</Text>
+                <StatusChip
+                  label={'  INIT LOSS '}
+                  value={initialLoss.toFixed(4)}
+                  valueColor={INK.faint}
+                />
               )}
-            </Text>
+            </Box>
 
-            <Text>
-              <Text color={INK.dim}>{'Speed:    '}</Text>
-              <Text color="white" bold>{Math.round(progress!.tokensPerSec)}</Text>
-              <Text color={INK.dim}>{' tokens/sec'}</Text>
-            </Text>
+            <Box flexWrap="wrap">
+              <StatusChip
+                label={'  SPEED     '}
+                value={`${Math.round(progress!.tokensPerSec)} tok/s`}
+                valueColor={INK.text}
+              />
+              <StatusChip
+                label={'  ELAPSED   '}
+                value={formatDuration(elapsedSec)}
+                valueColor={INK.text}
+              />
+              {progress!.lr != null && (
+                <StatusChip
+                  label={'  LR        '}
+                  value={progress!.lr!.toExponential(2)}
+                  valueColor={INK.secondary}
+                />
+              )}
+            </Box>
 
-            <Text>
-              <Text color={INK.dim}>{'Elapsed:  '}</Text>
-              <Text color="white">{formatDuration(elapsedSec)}</Text>
-            </Text>
+            {/* Loss sparkline */}
+            <LossSparkline losses={lossHistory} />
 
-            <Text>
-              <Text color={INK.dim}>{'ETA:      '}</Text>
-              <Text color={INK.gold}>
-                {progress!.etaSeconds > 0
-                  ? `~${formatDuration(progress!.etaSeconds)} remaining`
-                  : 'calculating...'}
-              </Text>
-            </Text>
-
-            {progress!.lr != null && (
-              <Text>
-                <Text color={INK.dim}>{'LR:       '}</Text>
-                <Text color="white">{progress!.lr!.toExponential(2)}</Text>
-              </Text>
-            )}
-
+            {/* Stage */}
             {stage && stage !== 'Initializing...' && (
-              <Text>
-                <Text color={INK.dim}>{'Stage:    '}</Text>
+              <Box marginTop={0}>
+                <Text color={INK.faint}>{'  STAGE     '}</Text>
                 <Text color={INK.primary}>{stage}</Text>
-              </Text>
+              </Box>
             )}
-
-            <Newline />
-            <Text>
-              <Text color={INK.dim}>{'Last checkpoint: '}</Text>
-              {lastCheckpoint != null ? (
-                <Text color={INK.primary} bold>{lastCheckpoint}{` ${glyph.success}`}</Text>
-              ) : (
-                <Text color={INK.dim}>{'none yet'}</Text>
-              )}
-            </Text>
           </>
+        )}
+      </Box>
+
+      {/* ── Checkpoint log ──────────────────────────────────────────────── */}
+      <Box
+        borderStyle="single"
+        borderColor={INK.secondary}
+        paddingX={2}
+        paddingY={0}
+        marginTop={1}
+      >
+        <Text color={INK.faint}>{'CHECKPOINT  '}</Text>
+        {lastCheckpoint != null ? (
+          <>
+            <Text color={INK.tertiary} bold>{`${glyph.check} `}</Text>
+            <Text color={INK.text}>{lastCheckpoint}</Text>
+          </>
+        ) : (
+          <Text color={INK.faint}>{'─ none yet ─'}</Text>
         )}
       </Box>
     </Box>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Text, Newline, useInput } from 'ink';
+import { Box, Text, useInput } from 'ink';
 import { INK, glyph } from '../utils/colors.js';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -22,7 +22,9 @@ interface DoneStepProps {
 // ─── Main Component ──────────────────────────────────────────────────────────
 
 /**
- * Success screen shown after training and export are complete.
+ * Orbital Terminal success screen.
+ * Shown after training and export are complete.
+ * Terminal-green success status, sharp ASCII borders, command prompt.
  */
 export function DoneStep({
   ggufPath,
@@ -39,64 +41,88 @@ export function DoneStep({
   });
 
   return (
-    <Box flexDirection="column">
-      {/* Hero */}
-      <Box marginX={1} marginBottom={1}>
-        <Text color={INK.primary} bold>{'MODEL READY'}</Text>
+    <Box flexDirection="column" marginX={1}>
+      {/* ── Success Hero ──────────────────────────────────────────────── */}
+      <Box
+        borderStyle="double"
+        borderColor={INK.tertiary}
+        paddingX={2}
+        paddingY={0}
+        marginBottom={1}
+      >
+        <Text color={INK.tertiary} bold>
+          {'★ '}
+        </Text>
+        <Text color={INK.tertiary} bold>
+          {'MODEL READY'}
+        </Text>
+        <Text color={INK.faint}>{'  ──  '}</Text>
+        <Text color={INK.text}>{'Training complete. Your model is ready to run.'}</Text>
       </Box>
 
-      {/* File info */}
+      {/* ── Artifacts Panel ─────────────────────────────────────────── */}
       <Box
         flexDirection="column"
         borderStyle="single"
-        borderColor={INK.primary}
+        borderColor={INK.secondary}
         paddingX={2}
         paddingY={0}
-        marginX={1}
         marginBottom={1}
       >
-        <Newline />
-        <Text>
-          <Text color={INK.dim}>{'GGUF file:   '}</Text>
+        <Text bold color={INK.primary}>{'OUTPUT ARTIFACTS'}</Text>
+        <Text color={INK.faint}>{glyph.separator.repeat(50)}</Text>
+
+        <Box>
+          <Text color={INK.faint}>{'  GGUF       '}</Text>
           <Text color="white" bold>{ggufPath}</Text>
-          <Text color={INK.dim}>{` (${fileSize})`}</Text>
-        </Text>
-        <Text>
-          <Text color={INK.dim}>{'Modelfile:   '}</Text>
-          <Text color="white" bold>{modelfilePath}</Text>
-        </Text>
-        <Newline />
+          {fileSize && (
+            <Text color={INK.secondary}>{`  (${fileSize})`}</Text>
+          )}
+        </Box>
+
+        <Box>
+          <Text color={INK.faint}>{'  MODELFILE  '}</Text>
+          <Text color="white">{modelfilePath}</Text>
+        </Box>
+
+        <Text color={INK.faint}>{glyph.separator.repeat(50)}</Text>
 
         {/* Ollama import status */}
         {ollamaImported ? (
-          <Text>
-            <Text color={INK.primary} bold>{`${glyph.success} `}</Text>
-            <Text color={INK.primary} bold>{'[IMPORTED]'}</Text>
-            <Text color={INK.text}>{' Imported to Ollama as "'}</Text>
-            <Text color={INK.primary} bold>{modelName}</Text>
-            <Text color={INK.text}>{'"'}</Text>
-          </Text>
+          <Box>
+            <Text color={INK.tertiary} bold>{`${glyph.check} `}</Text>
+            <Text color={INK.tertiary} bold>{'IMPORTED  '}</Text>
+            <Text color={INK.text}>{'Registered in Ollama as  '}</Text>
+            <Text color={INK.primary} bold>{`"${modelName}"`}</Text>
+          </Box>
         ) : (
           <Box flexDirection="column">
-            <Text>
+            <Box>
               <Text color={INK.warning} bold>{`${glyph.warning} `}</Text>
-              <Text color={INK.warning} bold>{'[SKIPPED]'}</Text>
-              <Text color={INK.text}>{' Not imported to Ollama (Ollama not found or import failed)'}</Text>
-            </Text>
-            <Text color={INK.dim}>
-              {'  You can import manually:'}
-            </Text>
-            <Text color={INK.primary}>
-              {'    ollama create '}{modelName}{' -f '}{modelfilePath}
-            </Text>
+              <Text color={INK.warning} bold>{'SKIPPED   '}</Text>
+              <Text color={INK.text}>{'Ollama not found or import failed'}</Text>
+            </Box>
+            <Box marginTop={0}>
+              <Text color={INK.faint}>{'  Import manually:'}</Text>
+            </Box>
+            <Box
+              borderStyle="single"
+              borderColor={INK.secondary}
+              paddingX={1}
+              paddingY={0}
+              marginTop={0}
+            >
+              <Text color={INK.primary} bold>
+                {`ollama create ${modelName} -f ${modelfilePath}`}
+              </Text>
+            </Box>
           </Box>
         )}
-        <Newline />
       </Box>
 
-      {/* Try it now */}
-      <Box flexDirection="column" marginX={2}>
-        <Text color={INK.text} bold>Try it now:</Text>
+      {/* ── Try It Now ────────────────────────────────────────────────── */}
+      <Box flexDirection="column" marginBottom={1}>
+        <Text color={INK.faint} bold>{'TRY IT NOW'}</Text>
         <Box
           borderStyle="single"
           borderColor={INK.primary}
@@ -104,14 +130,15 @@ export function DoneStep({
           paddingY={0}
           marginTop={0}
         >
-          <Text color={INK.primary} bold>{'  ollama run '}{modelName}</Text>
+          <Text color={INK.primary} bold>{'$ '}</Text>
+          <Text color="white" bold>{`ollama run ${modelName}`}</Text>
         </Box>
       </Box>
 
-      {/* Footer */}
-      <Box marginX={2} marginTop={1}>
-        <Text color={INK.dim}>
-          {'Press any key to exit.'}
+      {/* ── Footer ────────────────────────────────────────────────────── */}
+      <Box>
+        <Text color={INK.faint}>
+          {glyph.prompt + ' Press any key to exit.'}
         </Text>
       </Box>
     </Box>

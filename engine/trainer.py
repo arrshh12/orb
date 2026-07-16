@@ -229,7 +229,11 @@ def _create_backend(name: str) -> Any:
         from engine.backend_mlx import MLXBackend
 
         return MLXBackend()
+    elif name == "cpu-only":
+        from engine.backend_cpu import CPUBackend
+
+        return CPUBackend()
     else:
         raise ValueError(
-            f"Unknown backend '{name}'. Supported: cuda, mlx."
+            f"Unknown backend '{name}'. Supported: cuda, mlx, cpu-only."
         )

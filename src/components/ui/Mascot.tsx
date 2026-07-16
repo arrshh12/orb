@@ -1,8 +1,7 @@
 import React from 'react';
 import { Text } from 'ink';
-import { getMascotIdle, getMascotFrame, getMascotDone, MascotOptions } from '../../utils/mascot.js';
-import { useFrameCycle } from '../../utils/useFrameCycle.js';
 import { INK } from '../../utils/colors.js';
+import { useFrameCycle } from '../../utils/useFrameCycle.js';
 
 interface MascotProps {
   state: 'idle' | 'working' | 'done';
@@ -10,31 +9,36 @@ interface MascotProps {
   asciiOnly?: boolean;
 }
 
+// Orbital Terminal: ORB glyphs — pulsing energy orb
+const WORKING_FRAMES = [
+  '◎',
+  '●',
+  '◉',
+  '●',
+];
+
+const IDLE_GLYPH  = '◎';
+const DONE_GLYPH  = '✦';
+
 /**
- * The Orb mascot — a bioluminescent creature.
- * Glows primary cyan when working, gold when done, secondary purple when idle.
+ * Orbital Terminal mascot — the Orb itself.
+ * Neon purple pulsing orb when working.
+ * Terminal green star when done.
+ * Muted violet ring when idle.
  */
-export function Mascot({ state, noAnimation = false, asciiOnly = false }: MascotProps): React.ReactElement {
-  const options: MascotOptions = { asciiOnly };
+export function Mascot({ state, noAnimation = false }: MascotProps): React.ReactElement {
+  const frame = useFrameCycle(WORKING_FRAMES, 300, state !== 'working' || noAnimation);
 
-  const frames = [
-    getMascotFrame(0, options),
-    getMascotFrame(1, options),
-    getMascotFrame(2, options),
-    getMascotFrame(3, options),
-  ];
+  let glyphChar = '';
+  if (state === 'idle') glyphChar = IDLE_GLYPH;
+  else if (state === 'done') glyphChar = DONE_GLYPH;
+  else glyphChar = noAnimation ? IDLE_GLYPH : frame;
 
-  const currentFrame = useFrameCycle(frames, 200, state !== 'working' || noAnimation);
+  // Orbital Terminal color mapping
+  const color =
+    state === 'done'    ? INK.tertiary  :   // terminal green
+    state === 'working' ? INK.primary   :   // neon purple
+                          INK.secondary;    // deep violet (idle)
 
-  let glyph = '';
-  if (state === 'idle') glyph = getMascotIdle(options);
-  else if (state === 'done') glyph = getMascotDone(options);
-  else {
-    glyph = noAnimation ? getMascotIdle(options) : currentFrame;
-  }
-
-  // Bioluminescent color mapping
-  const color = state === 'done' ? INK.gold : state === 'working' ? INK.primary : INK.secondary;
-
-  return <Text color={color} bold>{glyph}</Text>;
+  return <Text color={color} bold>{glyphChar}</Text>;
 }

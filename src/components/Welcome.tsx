@@ -1,9 +1,9 @@
 import React from 'react';
 import { Box, Text, useApp, useInput } from 'ink';
 import type { HardwareInfo } from '../types/hardware.js';
-import { Banner } from './ui/Banner.js';
 import { HardwareTable } from './ui/HardwareTable.js';
 import { ErrorBox } from './ui/ErrorBox.js';
+import { INK, glyph } from '../utils/colors.js';
 
 interface WelcomeProps {
   hardware: HardwareInfo;
@@ -11,11 +11,10 @@ interface WelcomeProps {
 }
 
 /**
- * First wizard screen:
- * 1. Render the Banner
- * 2. Show HardwareTable with detected info
- * 3. If CPU-only: show ErrorBox explaining training isn't feasible, then exit
- * 4. If viable: show "Press Enter to begin" prompt
+ * Orbital Terminal welcome screen.
+ * 1. Hardware summary table
+ * 2. If CPU-only: error box with guidance, then exit
+ * 3. If viable: neon purple READY status + press Enter prompt
  */
 export function Welcome({ hardware, onContinue }: WelcomeProps): React.ReactElement {
   const { exit } = useApp();
@@ -23,7 +22,6 @@ export function Welcome({ hardware, onContinue }: WelcomeProps): React.ReactElem
 
   useInput((_input, key) => {
     if (isCpuOnly) {
-      // Any key exits when not viable
       if (key.return || key.escape) {
         exit();
       }
@@ -35,14 +33,13 @@ export function Welcome({ hardware, onContinue }: WelcomeProps): React.ReactElem
   });
 
   return (
-    <Box flexDirection="column">
-      <Banner />
+    <Box flexDirection="column" marginX={1}>
       <HardwareTable hardware={hardware} />
 
       {isCpuOnly ? (
-        <Box flexDirection="column" marginX={1}>
+        <Box flexDirection="column">
           <ErrorBox
-            title="No GPU Detected"
+            title="NO GPU DETECTED"
             message="QLoRA fine-tuning requires a GPU with at least 4 GB of VRAM."
             guidance={
               'Orb needs an NVIDIA GPU (CUDA) or Apple Silicon (MLX) to train.\n' +
@@ -52,15 +49,27 @@ export function Welcome({ hardware, onContinue }: WelcomeProps): React.ReactElem
           />
         </Box>
       ) : (
-        <Box flexDirection="column" marginX={1}>
-          <Box marginX={1}>
-            <Text color="green" bold>{'✓ '}</Text>
-            <Text>Your hardware looks good for fine-tuning!</Text>
+        <Box flexDirection="column">
+          {/* Status chip — ready */}
+          <Box
+            borderStyle="single"
+            borderColor={INK.tertiary}
+            paddingX={2}
+            paddingY={0}
+            marginBottom={1}
+          >
+            <Text color={INK.tertiary} bold>{`${glyph.check} `}</Text>
+            <Text color={INK.tertiary} bold>{'HARDWARE OK  '}</Text>
+            <Text color={INK.text}>{'Your system is ready for fine-tuning.'}</Text>
           </Box>
-          <Box marginX={1} marginTop={1}>
-            <Text color="cyan" bold dimColor>
-              Press <Text color="white" bold>Enter</Text> to begin →
-            </Text>
+
+          {/* Enter prompt */}
+          <Box>
+            <Text color={INK.primary} bold>{glyph.prompt + ' '}</Text>
+            <Text color={INK.text}>{'Press '}</Text>
+            <Text color="white" bold>{'Enter'}</Text>
+            <Text color={INK.text}>{' to continue '}</Text>
+            <Text color={INK.secondary}>{glyph.arrow}</Text>
           </Box>
         </Box>
       )}
