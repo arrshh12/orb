@@ -88,7 +88,13 @@ def load_and_tokenize(
     rng = random.Random(seed)
     indices = list(range(len(tokenised)))
     rng.shuffle(indices)
-    n_val = max(1, int(len(indices) * val_ratio))
+    
+    n_val = int(len(indices) * val_ratio)
+    if n_val == 0 and len(indices) > 1 and val_ratio > 0:
+        n_val = 1
+    elif n_val >= len(indices):
+        n_val = len(indices) - 1
+
     val_indices = set(indices[:n_val])
     train_data = [tokenised[i] for i in range(len(tokenised)) if i not in val_indices]
     val_data = [tokenised[i] for i in range(len(tokenised)) if i in val_indices]
