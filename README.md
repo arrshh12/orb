@@ -28,7 +28,7 @@
 - **Hardware Agnostic:** Automatically utilizes NVIDIA CUDA or Apple Silicon (MLX).
 - **Interactive UI:** Step-by-step CLI wizard powered by Ink.
 - **Zero Configuration:** Auto-configures hyperparameters based on your hardware constraints.
-- **Kaggle & Hugging Face Datasets:** Fetch custom datasets directly from Hugging Face or download public/private Kaggle datasets via URLs or dataset slugs.
+- **Kaggle & Hugging Face Datasets:** Fetch custom datasets directly from Hugging Face or download public/private Kaggle datasets via URLs or dataset slugs. The wizard handles Kaggle API authentication seamlessly.
 - **Ollama Ready:** Merges LoRA adapters and exports directly to a Q4_K_M GGUF format that automatically registers with your local Ollama instance.
 
 ---
@@ -73,7 +73,7 @@ Orb is intelligently split into two halves: a Node.js wizard CLI for a seamless,
 graph TB
     subgraph "Node.js CLI (Ink 5 / ESM / TypeScript)"
         A["Wizard UI<br/>Multi-step flow"] --> B["Hardware Detector"]
-        A --> C["Dataset Loader"]
+        A --> C["Dataset Loader<br/>(Local, HF, Kaggle)"]
         A --> D["Model Validator"]
         A --> E["Auto-Config Engine"]
         A --> F["IPC Manager<br/>(JSON Lines)"]
@@ -97,9 +97,10 @@ graph TB
         G["Python Training Engine"] --> H{"Backend Router"}
         H -->|"NVIDIA GPU"| I["CUDA Backend<br/>transformers+peft+bnb"]
         H -->|"Apple Silicon"| J["MLX Backend<br/>mlx-lm"]
-        H -->|"CPU only"| K["Refuse gracefully"]
+        H -->|"CPU only"| K["CPU Backend<br/>unsloth+llama.cpp"]
         I --> L["Adapter Checkpoint"]
         J --> L
+        K --> L
         L --> M["Merge Adapter"]
     end
 
@@ -118,8 +119,8 @@ graph TB
 
 ### 🔄 Engine Workflow Breakdown
 
-1. 🔀 **Backend Routing:** Reads the hardware detection results and dynamically routes the workload to either the `CUDA` backend (NVIDIA) or the `MLX` backend (Apple Silicon).
-2. 💉 **LoRA Injection:** Loads the target model in **4-bit quantization** (using `bitsandbytes` on NVIDIA or native MLX on Apple) and injects trainable LoRA adapters targeting the `all-linear` modules (approx. 1% of base parameters).
+1. 🔀 **Backend Routing:** Reads the hardware detection results and dynamically routes the workload to the `CUDA` backend (NVIDIA), `MLX` backend (Apple Silicon), or the highly-optimized `CPU` backend (llama.cpp).
+2. 💉 **LoRA Injection:** Loads the target model in **4-bit quantization** (using `bitsandbytes`, MLX, or GGUF) and injects trainable LoRA adapters targeting the `all-linear` modules (approx. 1% of base parameters).
 3. 🏃‍♂️ **Training Loop:** A highly-optimized custom training loop processes your tokenized dataset. Progress events (loss, tokens/sec, ETA) are streamed back to the Node CLI via JSON Lines.
 4. 🧩 **Adapter Merging:** Once training concludes, it reloads the base model in FP16, seamlessly merges the new LoRA adapter weights, and exports a unified `safetensors` model.
 5. 📦 **GGUF Export:** Utilizes the robust `llama-cpp-python` bindings (`convert_hf_to_gguf.py` and `llama-quantize`) to instantly export your merged model into a highly efficient **Q4_K_M GGUF** file, pushing it automatically to Ollama.
