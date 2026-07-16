@@ -233,6 +233,8 @@ class MLXBackend(TrainingBackend):
         micro_step = 0
         tokens_seen = 0
         step_start = time.monotonic()
+        ema_step_time = None
+        last_step_end = time.monotonic()
         accumulated_grads: Any = None
 
         for epoch in range(epochs):
@@ -292,12 +294,18 @@ class MLXBackend(TrainingBackend):
 
                     global_step += 1
                     now = time.monotonic()
+                    step_duration = now - last_step_end
+                    last_step_end = now
+
+                    if ema_step_time is None:
+                        ema_step_time = step_duration
+                    else:
+                        ema_step_time = 0.9 * ema_step_time + 0.1 * step_duration
+
                     elapsed = now - step_start
                     tps = tokens_seen / max(elapsed, 1e-6)
                     steps_left = total_steps - global_step
-                    eta = (
-                        (elapsed / max(global_step, 1)) * steps_left
-                    )
+                    eta = ema_step_time * steps_left
 
                     current_lr = optimizer.learning_rate.item() if hasattr(
                         optimizer.learning_rate, "item"
