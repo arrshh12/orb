@@ -8,7 +8,6 @@ regular Hugging Face model ID.
 
 from __future__ import annotations
 
-import gc
 import logging
 import math
 import os
@@ -398,101 +397,3 @@ class MLXBackend(TrainingBackend):
 
         # Save current adapter weights to a temp dir, then fuse.
         import tempfile
-
-        with tempfile.TemporaryDirectory() as tmp_adapter:
-            self.save_adapter(tmp_adapter)
-            fuse_model(
-                model=self._base_model_id,
-                adapter_path=tmp_adapter,
-                save_path=output_path,
-            )
-
-        # Convert MLX weights back to HF safetensors if needed.
-        self._convert_mlx_to_hf(output_path)
-
-        if self.tokenizer is not None:
-            self.tokenizer.save_pretrained(output_path)
-
-        emit_log("info", f"Merged model saved to {output_path}")
-
-    def _convert_mlx_to_hf(self, model_path: str) -> None:
-        """Convert MLX‑format weights to HF safetensors if they aren't already.
-
-        ``mlx_lm.fuse_model`` already saves in HF‑compatible format for
-        most models, so this is a best‑effort conversion.
-        """
-        from pathlib import Path
-
-        p = Path(model_path)
-        # If there are already .safetensors files, we're good.
-        if list(p.glob("*.safetensors")):
-            return
-
-        # If there are .npz files (older MLX format), convert via mlx_lm.
-        npz_files = list(p.glob("*.npz"))
-        if npz_files:
-            emit_log("info", "Converting MLX .npz weights to safetensors…")
-            try:
-                from mlx_lm.utils import save_model  # type: ignore[import-untyped]
-                import mlx_lm  # type: ignore[import-untyped]
-
-                model, _ = mlx_lm.load(str(p))
-                save_model(str(p), model)
-                # Clean up .npz files.
-                for f in npz_files:
-                    f.unlink()
-            except Exception as exc:
-                emit_log("warning", f"Could not convert MLX weights: {exc}")
-
-    # ------------------------------------------------------------------ #
-    # get_trainable_params_info
-    # ------------------------------------------------------------------ #
-
-    def get_trainable_params_info(self) -> dict[str, Any]:
-        import mlx.core as mx  # type: ignore[import-untyped]
-
-        assert self.model is not None
-
-        def _count_params(params: Any) -> int:
-            """Recursively count elements in a nested dict/list of arrays."""
-            if isinstance(params, mx.array):
-                return params.size
-            if isinstance(params, dict):
-                return sum(_count_params(v) for v in params.values())
-            if isinstance(params, (list, tuple)):
-                return sum(_count_params(v) for v in params)
-            return 0
-
-        total = _count_params(self.model.parameters())
-        trainable = _count_params(self.model.trainable_parameters())
-
-        return {
-            "trainable_params": trainable,
-            "total_params": total,
-            "trainable_pct": 100.0 * trainable / max(total, 1),
-        }
-
-
-# ---------------------------------------------------------------------------
-# Tree‑map utilities for gradient accumulation
-# ---------------------------------------------------------------------------
-
-
-def _tree_map_add(tree_a: Any, tree_b: Any) -> Any:
-    """Element‑wise add two nested dicts/lists of MLX arrays."""
-    if isinstance(tree_a, dict):
-        return {k: _tree_map_add(tree_a[k], tree_b[k]) for k in tree_a}
-    if isinstance(tree_a, (list, tuple)):
-        return type(tree_a)(_tree_map_add(a, b) for a, b in zip(tree_a, tree_b))
-    return tree_a + tree_b
-
-
-def _tree_map_scale(tree: Any, scale: float) -> Any:
-    """Multiply every leaf array by *scale*."""
-    import mlx.core as mx  # type: ignore[import-untyped]
-
-    if isinstance(tree, dict):
-        return {k: _tree_map_scale(v, scale) for k, v in tree.items()}
-    if isinstance(tree, (list, tuple)):
-        return type(tree)(_tree_map_scale(v, scale) for v in tree)
-    return tree * mx.array(scale)
