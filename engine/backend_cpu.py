@@ -17,7 +17,6 @@ import os
 import re
 import shutil
 import subprocess
-import time
 from typing import Any, Callable
 
 from engine.backend_base import TrainingBackend
@@ -236,7 +235,6 @@ class CPUBackend(TrainingBackend):
 
         # ---- spawn process -------------------------------------------
         total_steps: int = 0  # will be inferred from output
-        step_start = time.monotonic()
 
         process = subprocess.Popen(
             cmd,
@@ -392,14 +390,3 @@ class CPUBackend(TrainingBackend):
                 emit_log("info", f"Merged model saved to {merged_gguf}")
         else:
             if not merge_bin:
-                emit_log(
-                    "warning",
-                    "llama-export-lora not found — copying adapter files. "
-                    "Install llama.cpp to enable automatic merging.",
-                )
-            if not base_gguf:
-                emit_log("warning", "No base_gguf_path configured — cannot merge.")
-
-            # Fall back to copying adapter files.
-            shutil.copy2(adapter_file, os.path.join(output_path, os.path.basename(adapter_file)))
-            emit_log("info", f"Adapter copied to {output_path}")
