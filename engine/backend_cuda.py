@@ -397,3 +397,42 @@ class CUDABackend(TrainingBackend):
         )
 
     # ------------------------------------------------------------------ #
+    # Adapter operations
+    # ------------------------------------------------------------------ #
+
+    def save_adapter(self, output_path: str) -> None:
+        """Save the trained PEFT adapter and tokenizer."""
+        assert self.model is not None, "No model is loaded."
+        os.makedirs(output_path, exist_ok=True)
+        self.model.save_pretrained(output_path)
+        if self.tokenizer is not None:
+            self.tokenizer.save_pretrained(output_path)
+
+    def merge_adapter(self, output_path: str) -> str:
+        """Merge the adapter into the base model and save the merged model."""
+        assert self.model is not None, "No model is loaded."
+        if not hasattr(self.model, "merge_and_unload"):
+            raise RuntimeError("The loaded model does not have a mergeable adapter.")
+
+        os.makedirs(output_path, exist_ok=True)
+        self.model = self.model.merge_and_unload()
+        self.model.save_pretrained(output_path, safe_serialization=True)
+        if self.tokenizer is not None:
+            self.tokenizer.save_pretrained(output_path)
+        return output_path
+
+    def get_trainable_params_info(self) -> dict[str, int | float]:
+        """Return the trainable and total parameter counts and percentage."""
+        assert self.model is not None, "No model is loaded."
+        trainable_params = sum(
+            parameter.numel()
+            for parameter in self.model.parameters()
+            if parameter.requires_grad
+        )
+        total_params = sum(parameter.numel() for parameter in self.model.parameters())
+        trainable_pct = 100.0 * trainable_params / total_params if total_params else 0.0
+        return {
+            "trainable_params": trainable_params,
+            "total_params": total_params,
+            "trainable_pct": trainable_pct,
+        }
