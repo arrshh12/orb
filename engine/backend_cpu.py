@@ -390,3 +390,7 @@ class CPUBackend(TrainingBackend):
                 emit_log("info", f"Merged model saved to {merged_gguf}")
         else:
             if not merge_bin:
+                emit_log("warning", "llama-export-lora binary not found. Copying adapter instead.")
+            else:
+                emit_log("warning", "Base GGUF model not specified. Copying adapter instead.")
+            shutil.copy2(adapter_file, os.path.join(output_path, os.path.basename(adapter_file)))
