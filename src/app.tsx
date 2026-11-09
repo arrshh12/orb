@@ -197,12 +197,16 @@ export function App({ debug = false }: AppProps) {
       await ensureDir(checkpointDir);
     } catch (err) {
       const e = toPlainLanguageError(err);
+      const isAccessDenied = typeof err === 'object' && err !== null && 'code' in err && err.code === 'EACCES';
+      const guidance = isAccessDenied
+        ? `Check that you have write permissions for the output directory (${runDir}).`
+        : e.guidance;
       dispatch({
         type: 'SET_ERROR',
         message: e.userMessage,
         guidance: debug && e.technicalDetail
-          ? [e.guidance, e.technicalDetail].filter(Boolean).join('\n')
-          : e.guidance,
+          ? [guidance, e.technicalDetail].filter(Boolean).join('\n')
+          : guidance,
       });
       return;
     }
